@@ -46,7 +46,7 @@ cd "C:/Users/shiro/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH ./sr
 
 ### 6. 清日常结束
 
-- `computer_use capture app='src' mode='som'` → 约5分钟后验证右侧日志显示变为"Scrcpy server stopped"且没显示任何报错信息，则代表清日常结束 → 点击（"停止"按钮）→ 验证变为"启动"
+- `computer_use capture app='src' mode='som'` → 约5分钟后验证左侧"队列中"下方显示变为"无任务"且没显示任何报错信息，则代表清日常结束 → 点击（"停止"按钮）→ 验证变为"启动"
 
 - `computer_use capture app='MAA.exe' mode='som'` → 约25分钟后验证右侧日志显示变为"任务已全部完成！"且没显示任何报错信息，则代表清日常结束 → 点击（"停止"按钮）→ 验证变为"Link Start!"
 
