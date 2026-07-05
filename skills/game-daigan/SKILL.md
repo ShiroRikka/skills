@@ -46,7 +46,7 @@ Invoke through `terminal` and `computer_use` tools following the 10-step procedu
 
 ## Quick Reference
 
-See [emulator-commands.md](references/mumu-emulator/emulator-commands.md) for the full MuMuManager command reference (launch, shutdown, ADB, app management, package names).
+See [emulator-commands.md](references/mumu-emulator/emulator-commands.md) for the full MuMuManager command reference (launch, shutdown, ADB, app management, package names). For commands not covered there (create, clone, setting, etc.), consult the [official MuMuManager docs](https://mumu.163.com/help/20240807/40912_1170006.html).
 
 ### Quick Command Summary
 

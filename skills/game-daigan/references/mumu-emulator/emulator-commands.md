@@ -2,6 +2,8 @@
 
 Complete command reference for `MuMuManager.exe` (MuMu Nebula).
 
+> **权威来源:** 官方完整文档参见 [MuMuManager 命令行开发者使用说明](https://mumu.163.com/help/20240807/40912_1170006.html) — 涵盖 `info`、`create`、`clone`、`delete`、`rename`、`import`、`export`、`control`、`setting`、`adb` 全部命令，持续更新。本文件仅收录 game-daigan 流程中最常用的子集。
+
 ## Prerequisites
 
 - MuMu Nebula installed (`C:\Program Files\Netease\MuMu\nx_main\MuMuManager.exe`)
