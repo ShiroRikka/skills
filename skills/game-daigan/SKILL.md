@@ -39,11 +39,10 @@ Invoke through `terminal` and `computer_use` tools following the 10-step procedu
 3. `terminal` / `process` — poll until emulator fully started
 4. `terminal(background=true)` — launch daigan program
 5. `computer_use` — wait for daigan window to appear and stabilize
-6. `computer_use` — click start button, verify button text changes
-7. `computer_use(mode=vision)` — periodically inspect for completion signal
-8. `computer_use` — click stop button
-9. `process(action=kill)` — close daigan program
-10. `terminal` — shutdown emulator
+6. `computer_use` — click start button (SRC `--run` skips this)
+7. `terminal` — poll log file for completion (fallback: `computer_use` vision)
+8. `process(action=kill)` — close daigan program
+9. `terminal` — shutdown emulator
 
 ## Quick Reference
 
@@ -196,16 +195,11 @@ See [maa-log.md](references/maa-log.md) for details, pitfalls, and fallback.
 - **MAA:** Look for "任务已全部完成" or "任务完成" text appearing in the log/status panel
 - **SRC:** Look for "无任务" in the queue area, scheduler idle state
 
-> ⚠️ Note: When tasks are done, neither program auto-reverts the start/stop button. You must use Step 8 to click "停止" manually before closing.
+> ⚠️ Note: When tasks are done, neither program auto-reverts the start/stop button. Just close the program directly in Step 8 — no need to click "停止" first.
 
-### 8. Stop Daigan
+### 8. Close Daigan Program
 
-When completion detected:
-1. `computer_use(action='capture', mode='som', app="XXX")`
-2. Click the "停止" button
-3. Verify it reverts to the original start text
-
-### 9. Close Daigan Program
+Once completion is confirmed, directly kill the daigan process — no need to click "停止" first.
 
 ```
 process(action='kill', session_id='<session_id>')
@@ -213,7 +207,7 @@ process(action='kill', session_id='<session_id>')
 
 The session_id is from the `terminal(background=true)` output in Step 4.
 
-### 10. Shutdown Emulator
+### 9. Shutdown Emulator
 
 ```
 MuMuManager.exe control -v <INDEX> shutdown
@@ -224,7 +218,7 @@ Verify with `info -v all` that `"is_process_started": false` for the target inde
 ## Pitfalls
 
 - **SRC requires a clean environment**: Always `cd` into its install directory and clear `PYTHONPATH` before launching. Running from elsewhere or with a contaminated `PYTHONPATH` causes import errors. This applies even when using `--run`.
-- **`--run` ≠ no monitor**: Using `--run src` auto-starts SRC tasks but does NOT auto-stop. Still need to monitor completion and click "停止" (Step 8).
+- **`--run` ≠ no monitor**: Using `--run src` auto-starts SRC tasks but does NOT auto-stop. Still need to monitor completion (Step 7) then kill the process (Step 8).
 - **`--run` with wrong config name**: SRC starts but does nothing. Config name is case-sensitive and must match an existing instance name under `config/`.
 - **MAA window title is unstable**: It includes version/build info that updates with each release. Never match on window title — use `app="MAA"` for process-based targeting.
 - **Background launch ≠ instant ready**: Daigan programs take 5–30 seconds to render their first window. Use `notify_on_complete` or poll logs before capturing.
