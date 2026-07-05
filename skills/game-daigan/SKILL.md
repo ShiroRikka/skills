@@ -46,16 +46,15 @@ Invoke through `terminal` and `computer_use` tools following the 10-step procedu
 
 ## Quick Reference
 
-### MuMuManager.exe Commands
+See [emulator-commands.md](references/mumu-emulator/emulator-commands.md) for the full MuMuManager command reference (launch, shutdown, ADB, app management, package names).
+
+### Quick Command Summary
 
 | Action | Command |
 |---|---|
 | List all emulators | `MuMuManager.exe info -v all` |
 | Launch emulator | `MuMuManager.exe control -v <N> launch` |
 | Shutdown emulator | `MuMuManager.exe control -v <N> shutdown` |
-| Start app in emulator | `MuMuManager.exe control -v <N> app launch -pkg <pkg>` |
-| Close app in emulator | `MuMuManager.exe control -v <N> app close -pkg <pkg>` |
-| List installed apps | `MuMuManager.exe control -v <N> app info --installed` |
 | ADB command | `MuMuManager.exe adb -v <N> -c <cmd>` |
 
 ### Daigan Program Paths (via Scoop `current`)
@@ -87,8 +86,9 @@ Invoke through `terminal` and `computer_use` tools following the 10-step procedu
 | `index` | Numeric index for `-v` flag |
 | `is_process_started` | VM process running |
 | `is_android_started` | Android OS fully booted |
-| `player_state` | Current phase: `"start_finished"` = ready |
-| `adb_port` | ADB port (only present when running) |
+| `player_state` | `"start_finished"` = ready |
+
+See [info-v-all-fields.md](references/mumu-emulator/info-v-all-fields.md) for the complete field reference.
 
 ## Procedure
 
@@ -100,7 +100,7 @@ Run through `terminal`:
 "C:\Program Files\Netease\MuMu\nx_main\MuMuManager.exe" info -v all
 ```
 
-Parse the JSON. Match `"name"` to the game (e.g. "明日方舟" → index 0, "星穹铁道" → index 1). Record the `index`.
+Parse the JSON. Match `"name"` to the game (e.g. "明日方舟" → index 0, "星穹铁道" → index 1). Record the `index`. See [info-v-all-fields.md](references/mumu-emulator/info-v-all-fields.md) for the complete field reference, or [current-setup.md](references/mumu-emulator/current-setup.md) for this machine's emulator layout.
 
 ### 2. Launch the Emulator
 
