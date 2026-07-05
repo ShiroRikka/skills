@@ -122,6 +122,15 @@ Poll `mumu-cli.exe info --vmindex all` repeatedly (every 10 seconds) until **all
 
 **Important:** Once all targets satisfy the ready conditions, **stop polling immediately** — do not continue a fixed number of iterations. Typical wait: 30–120 seconds per emulator. Both boot independently — poll the full list each cycle.
 
+**Now hide all emulator windows** so they don't block daigan program UIs later:
+
+```bash
+mumu-cli.exe control --vmindex <INDEX_1> hide_window
+mumu-cli.exe control --vmindex <INDEX_2> hide_window
+```
+
+The daigan programs (MAA/SRC) communicate with the emulator via ADB — the emulator window does not need to be visible.
+
 ---
 
 ### 4. Launch Daigan Program(s)
