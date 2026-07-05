@@ -13,10 +13,9 @@ compatibility: >
   SRC/StarRailCopilot（星穹铁道）通过 Scoop 安装，并且 mumu-control
   技能可用。
 metadata:
-  version: 1.1.0
+  version: 1.2.0
   author: Hermes
   spec: agentskills-1.0
-
 ---
 
 # 游戏自动代肝
@@ -24,9 +23,10 @@ metadata:
 在 MuMu Android 模拟器上使用 **MAA**（明日方舟）和 **SRC**（星穹铁道）辅助程序自动完成日常游戏任务。涵盖完整的代肝生命周期：识别模拟器实例 → 通过 mumu-control 启动 → 启动代肝程序 → 触发自动化 → 监控完成状态 → 清理收尾。
 
 > **技能结构说明（渐进式文档）：**
+>
 > - 本 `SKILL.md` 是核心流程 — 执行代肝任务时加载此文件
 > - **只有**需要基于日志检测 MAA 完成状态时，再阅读 [references/maa-log.md](references/maa-log.md)
-> - **只有** SRC 启动遇到问题时（如 `--run` 参数排查），再阅读 [references/src-cli.md](references/src-cli.md)
+> - **只有** SRC 启动遇到问题时，再阅读 [references/src-cli.md](references/src-cli.md)
 
 > **本技能负责游戏自动化（代肝）层。** 对于底层的 MuMu 模拟器操作（启动、关闭、ADB、UI 自动化），委托给 `mumu-control` 技能处理 — 详见 [与 mumu-control 的关系](#与-mumu-control-的关系)。
 
@@ -43,26 +43,26 @@ metadata:
 ## 前置条件
 
 - **MuMu Player 12** 已安装（`mumu-control` 会自动检测路径）
-- **MAA**（明日方舟）通过 Scoop 安装：`~/scoop/apps/maa/current/MAA.exe`
-- **SRC / StarRailCopilot**（星穹铁道）通过 Scoop 安装：`~/scoop/apps/StarRailCopilot/current/src.exe`
+- **MAA**（明日方舟）通过 Scoop 安装：`$HOME/scoop/apps/maa/current/MAA.exe`
+- **SRC / StarRailCopilot**（星穹铁道）通过 Scoop 安装：`$HOME/scoop/apps/StarRailCopilot/current/src.exe`
 - **`mumu-control` 技能** 在同一技能目录下可用（`skills/mumu-control/SKILL.md`）
 
 ## 与 mumu-control 的关系
 
 官方 [`mumu-control`](../mumu-control/SKILL.md) 技能涵盖所有 MuMu Player 12 操作：
 
-| 操作 | 由谁处理 |
-|------|----------|
-| 查找安装路径 | `mumu-control` — 自动检测链 |
-| 列出模拟器实例（`info`） | `mumu-control` — `mumu-cli.exe info --vmindex all` |
-| 启动/关闭模拟器 | `mumu-control` — `control launch` / `control shutdown` |
-| 等待启动完成 | `mumu-control` — 轮询 `player_state == start_finished` |
-| ADB 连接及命令 | `mumu-control` — 内置 `adb.exe`、应用管理 |
+| 操作                         | 由谁处理                                                 |
+| ---------------------------- | -------------------------------------------------------- |
+| 查找安装路径                 | `mumu-control` — 自动检测链                              |
+| 列出模拟器实例（`info`）     | `mumu-control` — `mumu-cli.exe info --vmindex all`       |
+| 启动/关闭模拟器              | `mumu-control` — `control launch` / `control shutdown`   |
+| 等待启动完成                 | `mumu-control` — 轮询 `player_state == start_finished`   |
+| ADB 连接及命令               | `mumu-control` — 内置 `adb.exe`、应用管理                |
 | UI 自动化（点击、滑动、OCR） | `mumu-control` — Python 脚本（`tap.py`、`uiscan.py` 等） |
 
-**本技能（`game-daigan`）只添加游戏相关的知识** — 哪个模拟器实例对应哪个游戏、如何以正确的参数和环境启动 MAA/SRC、如何验证它们正在运行、以及如何检测任务完成状态。
+**本技能（`game-daigan`）只添加游戏相关的知识** — 哪个如何以正确的参数和环境启动 MAA/SRC、如何验证它们正在运行等。
 
-执行以下流程时，加载 `mumu-control` 技能处理模拟器相关步骤，并查阅其参考文档。不要重复记录 MuMu CLI 命令。
+执行以下流程时，加载 `mumu-control` 技能处理模拟器相关步骤，并查阅其参考文档。
 
 ## 工作流概览
 
@@ -86,13 +86,11 @@ metadata:
 
 解析用户的请求：
 
-| 提到关键词 | 游戏 |
-|-----------|------|
-| "明日方舟" / "Arknights" / "MAA" | → MAA |
-| "星穹铁道" / "星铁" / "Star Rail" / "SRC" | → SRC |
-| 未指定 / "都肝" / "全部" / "both" | → **两个都跑** |
-
-维护一个目标游戏列表，用于后续清理步骤。保存第 4 步中的后台进程 session ID。
+| 提到关键词                                | 游戏           |
+| ----------------------------------------- | -------------- |
+| "明日方舟" / "Arknights" / "MAA"          | → MAA          |
+| "星穹铁道" / "星铁" / "Star Rail" / "SRC" | → SRC          |
+| 未指定 / "都肝" / "全部" / "both"         | → **两个都跑** |
 
 ---
 
@@ -106,8 +104,8 @@ mumu-cli.exe info --vmindex all
 
 解析 JSON。通过匹配 `"name"` 字段找到每个目标游戏的 `--vmindex`：
 
-| 游戏 | 预期名称 |
-|------|---------|
+| 游戏     | 预期名称   |
+| -------- | ---------- |
 | 明日方舟 | "明日方舟" |
 | 星穹铁道 | "星穹铁道" |
 
@@ -151,7 +149,7 @@ mumu-cli.exe control --vmindex <INDEX_2> hide_window
 
 ### 4. 启动代肝程序
 
-通过 `terminal(background=true, notify_on_complete=true)` **并行**启动代肝程序。保存返回的 session ID — 第 8 步需要它们来杀掉进程。设置 `notify_on_complete=true` 可确保程序异常退出时系统会通知你。
+通过 `terminal(background=true)` **并行**启动代肝程序。
 
 **MAA（如果启用了）：**
 
@@ -171,7 +169,7 @@ cd "$HOME/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH ./src.exe
 
 > ⚠️ SRC 需要干净的环境：始终先 `cd` 进入安装目录并清除 `PYTHONPATH`。从其他目录运行或使用被污染的 `PYTHONPATH` 会导致导入错误。
 
-不加 `--run` 参数启动 — 窗口打开后进入第 6 步手动点击"启动"按钮。
+窗口打开后进入第 6 步手动点击"启动"按钮。
 
 ---
 
@@ -192,6 +190,7 @@ cd "$HOME/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH ./src.exe
 **按顺序**处理 MAA 和 SRC — 彻底完成一个再开始下一个。不要同时触发两个点击；每个点击都必须验证通过后才能继续。
 
 **MAA（如果启用了）：**
+
 1. `computer_use(action='capture', mode='som', app="MAA")` — 获取编号覆盖层
 2. 按元素索引点击"Link Start!"按钮
 3. 重新截图确认按钮文字变为"停止"
@@ -199,6 +198,7 @@ cd "$HOME/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH ./src.exe
 4. 确认 MAA 正在运行后，再处理 SRC
 
 **SRC（如果启用了）：**
+
 1. `computer_use(action='capture', mode='som', app="src")` — 获取编号覆盖层
 2. 按元素索引点击"启动"按钮
 3. 如果按钮在截图中不可见，可能是其他窗口挡住了。先隐藏模拟器窗口：`mumu-cli.exe control --vmindex <INDEX> hide_window`，然后重新截图并点击
@@ -217,20 +217,7 @@ cd "$HOME/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH ./src.exe
 
 ---
 
-### 8. 关闭代肝程序
-
-使用第 4 步保存的 session ID：
-
-```
-process(action='kill', session_id='<maa_session>')
-process(action='kill', session_id='<src_session>')
-```
-
-不需要在 GUI 里点击"停止" — 直接杀掉进程即可。
-
----
-
-### 9. 关闭模拟器
+### 8. 关闭模拟器
 
 使用 `mumu-control`：
 
@@ -240,16 +227,6 @@ mumu-cli.exe control --vmindex <INDEX_2> shutdown
 ```
 
 验证：`mumu-cli.exe info --vmindex all` — 确认每个目标显示 `"is_process_started": false`。
-
-## 完成检测（可选）
-
-可以不依赖用户通知，自行监控任务进度：
-
-**MAA** — 检查 `~/scoop/apps/maa/current/debug/gui.log` 中是否出现关键词`任务已全部完成`。详见 [maa-log.md](references/maa-log.md)。
-
-**SRC** — 检查 `~/scoop/apps/StarRailCopilot/current/log/{YYYY-MM-DD}_{config_name}.txt` 中是否出现 `No task pending`。详见 [src-cli.md](references/src-cli.md#基于日志的完成检测)。
-
-监控时每 30–60 秒轮询一次日志。
 
 ## 注意事项（避坑指南）
 
@@ -263,11 +240,7 @@ mumu-cli.exe control --vmindex <INDEX_2> shutdown
 
 ## 验证循环（收尾确认）
 
-关闭代肝程序和模拟器后，执行验证并根据需要重试：
+关闭模拟器后，执行验证并根据需要重试：
 
 1. **验证模拟器已关闭：** `mumu-cli.exe info --vmindex all` — 确认每个目标显示 `"is_process_started": false`
-2. **验证进程已清理：** `process(action='list')` — 确认没有 MAA 或 SRC 进程残留
-3. **如果任一检查失败：** 针对失败项重复第 8 步（杀进程）/ 第 9 步（关闭模拟器），然后重新验证
-4. **两项检查都通过后**才报告完成
-
-此验证循环确保清理彻底，没有孤儿进程残留。
+2. **检查通过后**才报告完成
