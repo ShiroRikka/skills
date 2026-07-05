@@ -217,7 +217,29 @@ cd "$HOME/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH ./src.exe
 
 ---
 
-### 8. 关闭模拟器
+### 8. 结束代肝
+
+**按顺序**处理 MAA 和 SRC — 彻底完成一个再开始下一个。不要同时触发两个点击；每个点击都必须验证通过后才能继续。
+
+**MAA（如果启用了）：**
+
+1. `computer_use(action='capture', mode='som', app="MAA")` — 获取编号覆盖层
+2. 按元素索引点击"停止"按钮
+3. 重新截图确认按钮文字变为"Link Start!"
+   - 如果仍然是"停止"，重试点击 + 重新截图一次
+4. 确认 MAA 停止后，再处理 SRC
+
+**SRC（如果启用了）：**
+
+1. `computer_use(action='capture', mode='som', app="src")` — 获取编号覆盖层
+2. 按元素索引点击"停止"按钮
+3. 如果按钮在截图中不可见，可能是其他窗口挡住了。先隐藏模拟器窗口：`mumu-cli.exe control --vmindex <INDEX> hide_window`，然后重新截图并点击
+4. 重新截图确认按钮文字变为"启动"
+   - 如果仍然是"停止"，重试点击 + 重新截图一次
+
+---
+
+### 9. 关闭模拟器
 
 使用 `mumu-control`：
 
