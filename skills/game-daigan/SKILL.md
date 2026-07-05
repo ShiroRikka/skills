@@ -1,21 +1,38 @@
 ---
 name: game-daigan
-description: Automate daily game farming (代肝/挂机) on MuMu Android emulator using MAA (明日方舟/Arknights) and SRC (星穹铁道/Honkai Star Rail). Use when user wants to start, monitor, or stop emulator-based auto-farming, mentions 代肝/挂机/每日/日常/周常/daily tasks, or wants to automate game tasks on emulator.
-compatibility: Windows only. Requires MuMu Player 12 installed, MAA (for Arknights) and/or SRC/StarRailCopilot (for Star Rail) installed via Scoop, and the `mumu-control` Agent Skill available.
+description: >
+  Launch automated daily game farming (代肝/挂机) on MuMu Android emulator.
+  Activate this skill when the user mentions 代肝/挂机/每日/日常/周常/daily
+  tasks, wants to run MAA for 明日方舟 (Arknights) or SRC for 星穹铁道 (Star
+  Rail), or asks to start/monitor/stop emulator-based auto-farming. Covers the
+  full daigan lifecycle: identify instances, launch emulator, start daigan
+  programs, click start via computer_use, monitor logs for completion, and
+  clean up.
+license: MIT
+compatibility: >
+  Windows only. Requires MuMu Player 12 installed, MAA (for Arknights) and/or
+  SRC/StarRailCopilot (for Star Rail) installed via Scoop, and the mumu-control
+  Agent Skill available.
 metadata:
-  version: 0.2.0
+  version: 1.0.0
   author: Hermes
+  spec: agentskills-1.0
 ---
 
 # Game Daigan (游戏自动代肝)
 
 Automate daily game farming tasks on MuMu Android emulator using **MAA** (明日方舟/Arknights) and **SRC** (星穹铁道/Honkai Star Rail) companion programs. Covers the full daigan lifecycle: identifying emulator instances → launching via mumu-control → starting daigan programs → triggering automation → monitoring for completion → clean teardown.
 
+> **How this skill is structured (progressive disclosure):**
+> - This `SKILL.md` is the core procedure — load it when you need to run daigan tasks
+> - Read [references/maa-log.md](references/maa-log.md) **only if** you need log-based MAA completion detection
+> - Read [references/src-cli.md](references/src-cli.md) **only if** SRC startup issues arise (e.g. `--run` troubleshooting)
+
 > **This skill handles the game-automation (daigan) layer.** For raw MuMu emulator operations (launch, shutdown, ADB, UI automation), it delegates to the `mumu-control` skill — see [Relationship with mumu-control](#relationship-with-mumu-control).
 
 Does NOT cover: installing the emulator or daigan programs, configuring in-game task settings inside the daigan UI, or general MuMu Player 12 management.
 
-## When to Use
+## When to Activate
 
 - "帮我代肝明日方舟" / "帮我代肝星铁"
 - "启动模拟器并开始挂机"
@@ -245,9 +262,13 @@ Poll logs every 30–60 seconds when monitoring.
 - **Window occlusion**: SRC's "启动" button or MAA's "Link Start!" may be hidden behind other windows (emulator, MAA itself, etc.). If the button is not visible in the capture, hide blocking windows first using `mumu-cli.exe control --vmindex <INDEX> hide_window`, then re-capture. This is usually the real cause of click failures, not the target window type.
 - **Sequential clicks required**: Do NOT click both daigan buttons simultaneously. When two windows share the same element index (e.g. both have element 28 as their start button), firing two clicks at once causes coordinate resolution to use the wrong window's mapping. Always click one, verify, then click the next.
 
-## Verification
+## Validation Loop (Teardown Verification)
 
-After cleanup:
+After closing daigan programs and shutting down emulators, run verification and repeat if needed:
 
-1. `mumu-cli.exe info --vmindex all` — confirm each target emulator shows `"is_process_started": false`
-2. `process(action='list')` — confirm no daigan processes remain
+1. **Verify emulators off:** `mumu-cli.exe info --vmindex all` — confirm each target shows `"is_process_started": false`
+2. **Verify processes clear:** `process(action='list')` — confirm no MAA or SRC processes remain
+3. **If either check fails:** repeat Step 8 (kill) / Step 9 (shutdown) for the failing item, then re-verify
+4. **Only report done** when both checks pass
+
+This validation loop ensures the cleanup is complete and no orphan processes linger.
