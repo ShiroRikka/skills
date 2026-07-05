@@ -193,8 +193,10 @@ Look for:
 See [maa-log.md](references/maa-log.md) for details, pitfalls, and fallback.
 
 **Vision-based fallback (both):** If the log file is inaccessible or uncertain, use `computer_use(action='capture', mode='vision', app="MAA"|"src")` every 2–5 minutes:
-- **MAA:** "Link Start!" / "停止" button state, task progress messages in logs
-- **SRC:** Queue showing "无任务", scheduler idle state, button reverted to "启动"
+- **MAA:** Look for "任务已全部完成" or "任务完成" text appearing in the log/status panel
+- **SRC:** Look for "无任务" in the queue area, scheduler idle state
+
+> ⚠️ Note: When tasks are done, neither program auto-reverts the start/stop button. You must use Step 8 to click "停止" manually before closing.
 
 ### 8. Stop Daigan
 
