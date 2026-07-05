@@ -1,212 +1,194 @@
 ---
 name: game-daigan
-description: Automate daily game farming on MuMu Android emulator with MAA (Arknights/明日方舟) and SRC (Star Rail/星穹铁道). Use when user wants to start/stop emulator-based auto-farming, or mentions 代肝, 挂机, 每日, daily tasks, or emulator automation.
+description: Automate daily game farming (代肝/挂机) on MuMu Android emulator using MAA (明日方舟/Arknights) and SRC (星穹铁道/Honkai Star Rail). Use when user wants to start, monitor, or stop emulator-based auto-farming, mentions 代肝/挂机/每日/日常/周常/daily tasks, or wants to automate game tasks on emulator.
+compatibility: Windows only. Requires MuMu Player 12 installed, MAA (for Arknights) and/or SRC/StarRailCopilot (for Star Rail) installed via Scoop, and the `mumu-control` Agent Skill available.
 metadata:
-  version: 0.1.0
+  version: 0.2.0
   author: Hermes
-  platforms:
-    - windows
-  hermes:
-    tags: [Gaming, Automation, MuMu]
 ---
 
 # Game Daigan (游戏自动代肝)
 
-Automate daily game farming tasks on MuMu Android emulator using MAA (明日方舟/Arknights) and SRC (星穹铁道/Honkai Star Rail) companion programs. Covers the full lifecycle: identifying emulator instances, launching/shutdown via MuMuManager, starting the daigan programs, triggering automation, monitoring for completion, and clean teardown. Does NOT cover installing the emulator or daigan programs, nor configuring in-game task settings inside the daigan UI.
+Automate daily game farming tasks on MuMu Android emulator using **MAA** (明日方舟/Arknights) and **SRC** (星穹铁道/Honkai Star Rail) companion programs. Covers the full daigan lifecycle: identifying emulator instances → launching via mumu-control → starting daigan programs → triggering automation → monitoring for completion → clean teardown.
+
+> **This skill handles the game-automation (daigan) layer.** For raw MuMu emulator operations (launch, shutdown, ADB, UI automation), it delegates to the `mumu-control` skill — see [Relationship with mumu-control](#relationship-with-mumu-control).
+
+Does NOT cover: installing the emulator or daigan programs, configuring in-game task settings inside the daigan UI, or general MuMu Player 12 management.
 
 ## When to Use
 
 - "帮我代肝明日方舟" / "帮我代肝星铁"
 - "启动模拟器并开始挂机"
 - "run the daily auto-farm for Arknights / Star Rail"
-- User wants to start, monitor, or stop emulator-based game automation
 - "帮我把每日/周常做了"
+- User wants to start, monitor, or stop emulator-based game automation
+- Any request involving 代肝, 挂机, 每日, daily farming, MAA, SRC, or auto-farming on MuMu
 
 ## Prerequisites
 
-- **MuMu Nebula** installed under `C:\Program Files\Netease\MuMu\nx_main\`
-- **MAA** (for Arknights) installed via Scoop: `~/scoop/apps/maa/current/MAA.exe`
+- **MuMu Player 12** installed (path auto-detected by `mumu-control`)
+- **MAA** (for Arknights) via Scoop: `~/scoop/apps/maa/current/MAA.exe`
 - **SRC / StarRailCopilot** (for Star Rail) via Scoop: `~/scoop/apps/StarRailCopilot/current/src.exe`
-- **cua-driver** installed (for `computer_use` actions)
-- Emulator instances known — first run `MuMuManager.exe info -v all` to see the map
+- **`mumu-control` skill** available in the same skills directory (`skills/mumu-control/SKILL.md`)
 
-## How to Run
+## Relationship with mumu-control
 
-Invoke through `terminal` and `computer_use` tools following the procedure below. The canonical flow:
+The official [`mumu-control`](../mumu-control/SKILL.md) skill covers all MuMu Player 12 operations:
 
-**Default:** if user doesn't specify a game, run **both** 明日方舟 (MAA) and 星穹铁道 (SRC) in **parallel**. If one is specified, run only that one.
+| Operation | Handled by |
+|-----------|-----------|
+| Find installation path | `mumu-control` — auto-detection chain |
+| List emulator instances (`info`) | `mumu-control` — `mumu-cli.exe info --vmindex all` |
+| Launch/shutdown emulator | `mumu-control` — `control launch` / `control shutdown` |
+| Wait for boot | `mumu-control` — poll `player_state == start_finished` |
+| ADB connection & commands | `mumu-control` — bundled `adb.exe`, app management |
+| UI automation (tap, swipe, OCR) | `mumu-control` — Python scripts (`tap.py`, `uiscan.py`, etc.) |
+
+**This skill (`game-daigan`) only adds game-specific knowledge** — which emulator instance maps to which game, how to start MAA/SRC with correct flags and environment, how to verify they're running, and how to detect task completion.
+
+When following the procedure below, load the `mumu-control` skill for emulator-related steps and consult its reference documentation there. Do not re-document MuMu CLI commands.
+
+## Workflow Overview
 
 ```
-1.  terminal → info -v all               identify all emulators
-2.  terminal → control launch <index>    launch target emulator(s)
-3.  terminal → poll info                  wait for ready (each)
-4.  terminal(background) → MAA / src      start daigan program(s)
-5.  computer_use → capture                confirm windows
-6.  computer_use → click start            MAA only (SRC --run skips)
-7.  inform user → 代肝已开始，完成后叫我
-8.  (user says "肝完了") → process(kill)   close daigan program(s)
-9.  terminal → control shutdown           shut down emulator(s)
+1. Identify emulators     → mumu-cli info --vmindex all (mumu-control)
+2. Launch emulator(s)     → mumu-cli control launch (mumu-control)
+3. Wait for ready         → poll info until is_android_started (mumu-control)
+4. Start daigan program   → MAA.exe / src.exe --run (game-daigan)
+5. Verify daigan window   → confirm UI visible (game-daigan)
+6. Start automation       → click button if needed (game-daigan)
+7. Inform user            → "已经开始代肝了，完成后叫我"
+8. (user signals done)    → kill daigan processes (game-daigan)
+9. Shutdown emulator(s)   → mumu-cli control shutdown (mumu-control)
 ```
 
-## Quick Reference
-
-See [emulator-commands.md](references/mumu-emulator/emulator-commands.md) for the full MuMuManager command reference (launch, shutdown, ADB, app management, package names). For commands not covered there (create, clone, setting, etc.), consult the [official MuMuManager docs](https://mumu.163.com/help/20240807/40912_1170006.html).
-
-### Quick Command Summary
-
-| Action | Command |
-|---|---|
-| List all emulators | `MuMuManager.exe info -v all` |
-| Launch emulator | `MuMuManager.exe control -v <N> launch` |
-| Shutdown emulator | `MuMuManager.exe control -v <N> shutdown` |
-| ADB command | `MuMuManager.exe adb -v <N> -c <cmd>` |
-
-### Daigan Program Paths (via Scoop `current`)
-
-| Game | Program | Path | Launch Note |
-|---|---|---|---|
-| 明日方舟 | MAA | `~/scoop/apps/maa/current/MAA.exe` | Direct launch |
-| 星穹铁道 | SRC | `~/scoop/apps/StarRailCopilot/current/src.exe` | `cd` to dir + `env -u PYTHONPATH` |
-
-> **SRC tip:** Add `--run src` to auto-start automation on launch, skipping the button-click step. See [src-cli.md](references/src-cli.md) for details.
-
-### Computer Use Window Targets
-
-| Program | `app=` parameter | Reason |
-|---|---|---|
-| MAA | `app="MAA"` | Window title changes daily, use process match |
-| SRC | `app="src"` | Window title is stable |
-
-### Button Semantics
-
-| Program | Start | Running indicator | Auto-start |
-|---|---|---|---|
-| MAA | "Link Start!" | Button becomes "停止" | No (must click) |
-| SRC | "启动" | Button becomes "停止" | Yes — `--run src` skips click, see [src-cli.md](references/src-cli.md) |
-
-### Info JSON Key Fields
-
-| Field | Meaning |
-|---|---|
-| `name` | Emulator display name (matches the game) |
-| `index` | Numeric index for `-v` flag |
-| `is_process_started` | VM process running |
-| `is_android_started` | Android OS fully booted |
-| `player_state` | `"start_finished"` = ready |
-
-See [info-v-all-fields.md](references/mumu-emulator/info-v-all-fields.md) for the complete field reference.
+**Default:** if user doesn't specify a game, run **both** MAA and SRC in parallel. If one is specified, run only that one.
 
 ## Procedure
-
-The steps below show the **both-games** flow (superset). For single-game mode, simply skip the other game's sub-steps.
 
 ### Game Selection
 
 Parse the user's request:
-- Mention of "明日方舟" / "Arknights" / "MAA" → run MAA
-- Mention of "星穹铁道" / "星铁" / "Star Rail" / "SRC" → run SRC
-- **未指定 / "都肝" / "全部" / "both" → run both in parallel**
 
-Keep a running list of target games for cleanup steps.
+| Mention | Game |
+|---------|------|
+| "明日方舟" / "Arknights" / "MAA" | → MAA |
+| "星穹铁道" / "星铁" / "Star Rail" / "SRC" | → SRC |
+| 未指定 / "都肝" / "全部" / "both" | → **Run both** |
+
+Keep a running list of target games for cleanup steps. Store the background process session IDs from Step 4.
+
+---
 
 ### 1. Identify Emulators
 
-Run once:
+Load the `mumu-control` skill and run:
 
+```bash
+mumu-cli.exe info --vmindex all
 ```
-"C:\Program Files\Netease\MuMu\nx_main\MuMuManager.exe" info -v all
-```
 
-Parse the JSON. Identify the index for each target game by matching `"name"`:
+Parse the JSON. Identify the `--vmindex` for each target game by matching `"name"`:
 
-| Game | Expected name | 
+| Game | Expected name |
 |------|---------------|
 | 明日方舟 | "明日方舟" |
 | 星穹铁道 | "星穹铁道" |
 
-Record each target's index. See [info-v-all-fields.md](references/mumu-emulator/info-v-all-fields.md) for the complete field reference, or [current-setup.md](references/mumu-emulator/current-setup.md) for this machine's emulator layout.
+See [current-setup.md](references/mumu-emulator/current-setup.md) for this machine's emulator layout.
+
+---
 
 ### 2. Launch Emulator(s)
 
-Launch each target emulator. For both games, issue both commands in sequence (they return immediately):
+Using `mumu-control`:
 
 ```bash
-MuMuManager.exe control -v <INDEX_ARKNIGHTS> launch
-MuMuManager.exe control -v <INDEX_STARRAIL> launch
+# Launch each target emulator
+mumu-cli.exe control --vmindex <INDEX_1> launch
+mumu-cli.exe control --vmindex <INDEX_2> launch
 ```
+
+---
 
 ### 3. Wait for Ready
 
-Poll `info -v all` in a loop until **all** conditions hold for **each** target index:
+Poll `mumu-cli.exe info --vmindex all` in a loop until **all** conditions hold for each target index:
+
 - `"is_process_started": true`
 - `"is_android_started": true`
 - `"player_state": "start_finished"`
 - `"adb_port"` field appears
 
-Typical wait: 30–120 seconds per emulator. Both emulators boot independently — poll the full list each cycle.
+Typical wait: 30–120 seconds per emulator. Both boot independently — poll the full list each cycle.
+
+---
 
 ### 4. Launch Daigan Program(s)
 
-For each target game, start the daigan program in the background. Both can run simultaneously.
+Launch daigan programs in **parallel** via `terminal(background=true)`. Save session IDs.
 
 **MAA (if active):**
+
 ```bash
 "MAA.exe"
 ```
 
-**SRC (if active) — preferred with `--run`:**
+Path: `~/scoop/apps/maa/current/MAA.exe`
 
-First, check the correct config name:
-```bash
-grep 'Run:' ~/scoop/apps/StarRailCopilot/current/config/deploy.yaml
-```
-The value (e.g. `"Alas"`, `"src"`) is the config name to pass to `--run`.
+Launch directly — the window opens and you proceed to Step 6 to click "Link Start!".
+
+**SRC (if active):**
 
 ```bash
-cd "C:/Users/shiro/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH ./src.exe --run <CONFIG_NAME>
+cd "C:/Users/shiro/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH ./src.exe --run src
 ```
 
-After launch, verify in Step 5: if the button still says "启动", the config name was wrong. See [src-cli.md](references/src-cli.md) for recovery.
+> ⚠️ SRC requires a clean environment: always `cd` into its install directory and clear `PYTHONPATH` before launching. Running from elsewhere or with a contaminated `PYTHONPATH` causes import errors.
 
-**SRC (manual — without `--run`, fallback):**
-```bash
-cd "C:/Users/shiro/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH ./src.exe
-```
+The `--run src` flag auto-starts automation (see [src-cli.md](references/src-cli.md)). The config name (`src`) matches the default instance — verify by checking `config/deploy.yaml` if unsure.
 
-### 5. Wait for Daigan Window(s)
+---
 
-For each active program, confirm its UI is visible. Wait 5–15 seconds after launch before capturing.
+### 5. Verify Daigan Window(s)
 
-**MAA (if active):** `computer_use(action='capture', app="MAA")` — verify main UI tabs (一键长草, 自动战斗, 小工具, 设置) and the "Link Start!" button.
+Wait 5–15 seconds after launch, then confirm each program's UI is visible using `computer_use`.
 
-**SRC (if active, with `--run`):** `computer_use(action='capture', app="src")` — verify scheduler UI (左侧导航, 日志区域). Task starts immediately — button may show "停止".
+**MAA:** `computer_use(action='capture', app="MAA")` — verify main UI tabs (一键长草, 自动战斗, 小工具, 设置) and the "Link Start!" button.
 
-**SRC (if active, without `--run`):** `computer_use(action='capture', app="src")` — verify scheduler UI (左侧导航, 启动按钮, 日志区域) with button showing "启动".
+**SRC (with `--run`):** `computer_use(action='capture', app="src")` — verify scheduler UI. Task starts immediately — button may show "停止".
+
+**SRC (without `--run`, fallback):** `computer_use(action='capture', app="src")` — button should show "启动".
+
+---
 
 ### 6. Start Daigan(s)
 
 **MAA (if active) / SRC (if active, without `--run`):**
+
 1. `computer_use(action='capture', mode='som', app="MAA"|"src")` — get numbered overlays
 2. Click the start button by element index
-3. Re-capture and confirm button text changed to "停止"
-
-If the SOM index doesn't capture the button cleanly, fall back to `mode='vision'` with coordinates.
+3. Re-capture and confirm button text changed:
+   - MAA: "Link Start!" → "停止"
+   - SRC: "启动" → "停止"
 
 **SRC (if active, with `--run`):** Skip this step — automation started on launch.
+
+---
 
 ### 7. Inform User
 
 All daigan programs are running. Tell the user:
 
-> **"已经在代肝了！肝完了叫我来收尾就好~"**
+> **"已经开始了！肝完了叫我来收尾就好~"**
 
-You stop here. Wait for the user to come back and say something like "肝完了", "结束了", "收尾", "关了吧".
+Stop here. Wait for the user to return and say something like "肝完了", "结束了", "收尾", "关了吧", "done".
 
-When the user signals completion, proceed to Steps 8-9.
+---
 
 ### 8. Close Daigan Program(s)
 
-Use the session IDs saved from Step 4's `terminal(background=true)` outputs:
+Use the session IDs saved from Step 4:
 
 ```
 process(action='kill', session_id='<maa_session>')
@@ -215,30 +197,42 @@ process(action='kill', session_id='<src_session>')
 
 No need to click "停止" inside the GUI — just kill directly.
 
+---
+
 ### 9. Shutdown Emulator(s)
 
-```
-MuMuManager.exe control -v <INDEX_ARKNIGHTS> shutdown
-MuMuManager.exe control -v <INDEX_STARRAIL> shutdown
+Using `mumu-control`:
+
+```bash
+mumu-cli.exe control --vmindex <INDEX_1> shutdown
+mumu-cli.exe control --vmindex <INDEX_2> shutdown
 ```
 
-Verify with `MuMuManager.exe info -v all` that each target emulator shows `"is_process_started": false`.
+Verify: `mumu-cli.exe info --vmindex all` — confirm each target shows `"is_process_started": false`.
 
-You can also check the log files to confirm tasks completed (optional — see [maa-log.md](references/maa-log.md) and [src-cli.md](references/src-cli.md#log-based-completion-detection) for keywords).
+## Completion Detection (Optional)
+
+You can monitor task progress without relying on the user:
+
+**MAA** — check `~/scoop/apps/maa/current/debug/gui.log` for the keyword `任务已全部完成`. See [maa-log.md](references/maa-log.md) for details.
+
+**SRC** — check `~/scoop/apps/StarRailCopilot/current/log/{YYYY-MM-DD}_{config_name}.txt` for `No task pending`. See [src-cli.md](references/src-cli.md#log-based-completion-detection) for details.
+
+Poll logs every 30–60 seconds when monitoring.
 
 ## Pitfalls
 
 - **SRC requires a clean environment**: Always `cd` into its install directory and clear `PYTHONPATH` before launching. Running from elsewhere or with a contaminated `PYTHONPATH` causes import errors. This applies even when using `--run`.
-- **`--run` with wrong config name**: SRC starts but does nothing. Config name is case-sensitive and must match an existing instance name under `config/`.
+- **`--run` with wrong config name**: SRC starts but does nothing. Config name is case-sensitive and must match an existing instance name under `config/`. Check `config/deploy.yaml` if unsure.
 - **MAA window title is unstable**: It includes version/build info that updates with each release. Never match on window title — use `app="MAA"` for process-based targeting.
-- **Background launch ≠ instant ready**: Daigan programs take 5–30 seconds to render their first window. Use `notify_on_complete` or poll logs before capturing.
-- **-201 errors from MuMuManager**: Commands like `app info --installed` return `errcode: -201` if the target emulator isn't running. Always verify emulator state first.
+- **Background launch ≠ instant ready**: Daigan programs take 5–30 seconds to render their first window. Use a delay or poll logs before capturing.
 - **Multi-instance ambiguity**: If multiple emulators could match the game name, check `"is_main"` or ask the user.
-- **Locale-dependent button text**: The skill assumes Chinese UI (MAA/SRC default). If the locale is different, button strings will differ and need updating.
+- **Locale-dependent button text**: The skill assumes Chinese UI (MAA/SRC default). If the locale is different, button strings will differ.
+- **SRC `--run` auto-starts but does NOT auto-stop**: Still need to kill the process (Step 8) when done.
 
 ## Verification
 
-After cleanup, verify:
+After cleanup:
 
-1. `MuMuManager.exe info -v all` — confirm each target emulator shows `"is_process_started": false`
+1. `mumu-cli.exe info --vmindex all` — confirm each target emulator shows `"is_process_started": false`
 2. `process(action='list')` — confirm no daigan processes remain
