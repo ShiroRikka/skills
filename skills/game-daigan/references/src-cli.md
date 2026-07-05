@@ -1,5 +1,7 @@
 # StarRailCopilot (SRC) CLI & Config Reference
 
+> ⚠️ **`--run` is unreliable in practice** — it often fails to match config names and does not auto-start automation. The `game-daigan` skill does NOT use `--run`; it always launches SRC without flags and clicks "启动" in the UI. This reference documents `--run` for completeness, but prefer the manual click approach.
+
 SRC supports auto-running tasks on startup, eliminating the need for manual `computer_use` button clicks.
 
 ## Auto-Run on Startup (Two Ways)

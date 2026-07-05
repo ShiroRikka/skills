@@ -54,9 +54,9 @@ When following the procedure below, load the `mumu-control` skill for emulator-r
 1. Identify emulators     → mumu-cli info --vmindex all (mumu-control)
 2. Launch emulator(s)     → mumu-cli control launch (mumu-control)
 3. Wait for ready         → poll info until is_android_started (mumu-control)
-4. Start daigan program   → MAA.exe / src.exe --run (game-daigan)
+4. Start daigan program   → MAA.exe / src.exe (game-daigan)
 5. Verify daigan window   → confirm UI visible (game-daigan)
-6. Start automation       → click button if needed (game-daigan)
+6. Start automation       → click button (game-daigan)
 7. Inform user            → "已经开始代肝了，完成后叫我"
 8. (user signals done)    → kill daigan processes (game-daigan)
 9. Shutdown emulator(s)   → mumu-cli control shutdown (mumu-control)
@@ -95,7 +95,7 @@ Parse the JSON. Identify the `--vmindex` for each target game by matching `"name
 | 明日方舟 | "明日方舟" |
 | 星穹铁道 | "星穹铁道" |
 
-See [current-setup.md](references/mumu-emulator/current-setup.md) for this machine's emulator layout.
+If the JSON names don't match exactly, list all instances and ask the user which index corresponds to which game.
 
 ---
 
@@ -113,40 +113,40 @@ mumu-cli.exe control --vmindex <INDEX_2> launch
 
 ### 3. Wait for Ready
 
-Poll `mumu-cli.exe info --vmindex all` in a loop until **all** conditions hold for each target index:
+Poll `mumu-cli.exe info --vmindex all` repeatedly (every 10 seconds) until **all** conditions hold for each target index:
 
 - `"is_process_started": true`
 - `"is_android_started": true`
 - `"player_state": "start_finished"`
 - `"adb_port"` field appears
 
-Typical wait: 30–120 seconds per emulator. Both boot independently — poll the full list each cycle.
+**Important:** Once all targets satisfy the ready conditions, **stop polling immediately** — do not continue a fixed number of iterations. Typical wait: 30–120 seconds per emulator. Both boot independently — poll the full list each cycle.
 
 ---
 
 ### 4. Launch Daigan Program(s)
 
-Launch daigan programs in **parallel** via `terminal(background=true)`. Save session IDs.
+Launch daigan programs in **parallel** via `terminal(background=true, notify_on_complete=true)`. Save the returned session IDs — you'll need them in Step 8 to kill the processes. Setting `notify_on_complete=true` ensures the system alerts you if a program exits unexpectedly.
 
 **MAA (if active):**
 
 ```bash
-"MAA.exe"
+"$HOME/scoop/apps/maa/current/MAA.exe"
 ```
 
-Path: `~/scoop/apps/maa/current/MAA.exe`
+> Use the explicit full path (`$HOME/scoop/apps/maa/current/MAA.exe`) rather than relying on `MAA.exe` from PATH — this is more reliable when running from git-bash.
 
 Launch directly — the window opens and you proceed to Step 6 to click "Link Start!".
 
 **SRC (if active):**
 
 ```bash
-cd ~/scoop/apps/StarRailCopilot/current && env -u PYTHONPATH ./src.exe --run src
+cd "$HOME/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH ./src.exe
 ```
 
 > ⚠️ SRC requires a clean environment: always `cd` into its install directory and clear `PYTHONPATH` before launching. Running from elsewhere or with a contaminated `PYTHONPATH` causes import errors.
 
-The `--run src` flag auto-starts automation (see [src-cli.md](references/src-cli.md)). The config name (`src`) matches the default instance — verify by checking `config/deploy.yaml` if unsure.
+Launch without `--run` — the window opens and you proceed to Step 6 to click "启动" manually.
 
 ---
 
@@ -156,9 +156,9 @@ Wait 5–15 seconds after launch, then confirm each program's UI is visible usin
 
 **MAA:** `computer_use(action='capture', app="MAA")` — verify main UI tabs (一键长草, 自动战斗, 小工具, 设置) and the "Link Start!" button.
 
-**SRC (with `--run`):** `computer_use(action='capture', app="src")` — verify scheduler UI. Task starts immediately — button may show "停止".
+**SRC:** `computer_use(action='capture', app="src")` — verify scheduler UI (左侧导航, 日志区域) and the "启动" button.
 
-**SRC (without `--run`, fallback):** `computer_use(action='capture', app="src")` — button should show "启动".
+> 💡 If the target window's button is not visible in the capture, other windows (emulator, MAA, etc.) may be covering it. Hide or minimize blocking windows first using mumu-control: `mumu-cli.exe control --vmindex <INDEX> hide_window`, then re-capture.
 
 ---
 
@@ -169,12 +169,11 @@ Wait 5–15 seconds after launch, then confirm each program's UI is visible usin
 2. Click the "Link Start!" button by element index
 3. Re-capture and confirm button text changed to "停止"
 
-**SRC (if active, without `--run`):**
+**SRC (if active):**
 1. `computer_use(action='capture', mode='som', app="src")` — get numbered overlays
 2. Click the "启动" button by element index
-3. Re-capture and confirm button text changed to "停止"
-
-**SRC (if active, with `--run`):** Skip this step — automation started on launch.
+3. If the button is not visible in the capture, other windows may be blocking it. Hide the emulator windows first: `mumu-cli.exe control --vmindex <INDEX> hide_window`, then re-capture and click
+4. Re-capture and confirm button text changed to "停止"
 
 ---
 
@@ -224,13 +223,12 @@ Poll logs every 30–60 seconds when monitoring.
 
 ## Pitfalls
 
-- **SRC requires a clean environment**: Always `cd` into its install directory and clear `PYTHONPATH` before launching. Running from elsewhere or with a contaminated `PYTHONPATH` causes import errors. This applies even when using `--run`.
-- **`--run` with wrong config name**: SRC starts but does nothing. Config name is case-sensitive and must match an existing instance name under `config/`. Check `config/deploy.yaml` if unsure.
+- **SRC requires a clean environment**: Always `cd` into its install directory and clear `PYTHONPATH` before launching. Running from elsewhere or with a contaminated `PYTHONPATH` causes import errors.
 - **MAA window title is unstable**: It includes version/build info that updates with each release. Never match on window title — use `app="MAA"` for process-based targeting.
-- **Background launch ≠ instant ready**: Daigan programs take 5–30 seconds to render their first window. Use a delay or poll logs before capturing.
+- **Background launch ≠ instant ready**: Daigan programs take 5–30 seconds to render their first window. Use a delay before capturing.
 - **Multi-instance ambiguity**: If multiple emulators could match the game name, check `"is_main"` or ask the user.
 - **Locale-dependent button text**: The skill assumes Chinese UI (MAA/SRC default). If the locale is different, button strings will differ.
-- **SRC `--run` auto-starts but does NOT auto-stop**: Still need to kill the process (Step 8) when done.
+- **Window occlusion**: SRC's "启动" button or MAA's "Link Start!" may be hidden behind other windows (emulator, MAA itself, etc.). If the button is not visible in the capture, hide blocking windows first using `mumu-cli.exe control --vmindex <INDEX> hide_window`, then re-capture. This is usually the real cause of click failures, not the target window type.
 
 ## Verification
 
