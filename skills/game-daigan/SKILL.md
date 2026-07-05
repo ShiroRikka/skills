@@ -155,9 +155,18 @@ For each target game, start the daigan program in the background. Both can run s
 ```
 
 **SRC (if active) — preferred with `--run`:**
+
+First, check the correct config name:
 ```bash
-cd "C:/Users/shiro/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH ./src.exe --run src
+grep 'Run:' ~/scoop/apps/StarRailCopilot/current/config/deploy.yaml
 ```
+The value (e.g. `"Alas"`, `"src"`) is the config name to pass to `--run`.
+
+```bash
+cd "C:/Users/shiro/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH ./src.exe --run <CONFIG_NAME>
+```
+
+After launch, verify in Step 5: if the button still says "启动", the config name was wrong. See [src-cli.md](references/src-cli.md) for recovery.
 
 **SRC (manual — without `--run`, fallback):**
 ```bash

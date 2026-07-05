@@ -38,8 +38,8 @@ The `--run` CLI arg takes precedence over `deploy.yaml`. The config name matches
 ## When `--run` Is Used
 
 - **Skip Step 6** (clicking start) — SRC begins executing tasks immediately after the window renders
-- **Step 5 becomes verification** — wait for the SRC window, confirm automation is running (task progress in the log area)
-- **Completion detection** — preferred method: read the log file (see below). Fallback: visual inspection (queue shows "无任务", button reverts to "启动")
+- **Verification** — capture the SRC window after launch. If the button changed to "停止", `--run` worked. If it still shows "启动", the config name is wrong — fall back to manual mode.
+- **Completion detection** — preferred method: read the log file (see below). Fallback: visual inspection (queue shows "无任务")
 
 ## When `--run` Is NOT Used
 
@@ -97,5 +97,10 @@ The log file is only created after SRC has started running tasks. If the file do
 ## Pitfalls
 
 - **Clean environment required**: Always `cd` into install dir and clear `PYTHONPATH` before launching, even with `--run`. Otherwise import errors occur.
-- **`--run` with wrong config name**: SRC starts but does nothing. Config name is case-sensitive and must match an existing instance name in `config/`.
+- **`--run` with wrong config name**: SRC starts but does nothing. **How to avoid:**
+  1. Check `config/deploy.yaml` for the `Run` field — that's the config name
+  2. Also check the `config/` directory for `.json` files with instance names
+  3. Try `--run Alas` if `src` doesn't work
+  4. After launching, capture the SRC window. If button still says "启动", the config name was wrong
+  5. **Fallback:** kill SRC, relaunch without `--run`, click "启动" button manually
 - **Still need `computer_use` to stop**: `--run` auto-starts but does NOT auto-stop. Still need to click "停止" (Step 8) when done.
