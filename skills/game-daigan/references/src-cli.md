@@ -9,13 +9,13 @@ SRC supports auto-running tasks on startup, eliminating the need for manual `com
 Pass the config name when launching:
 
 ```bash
-cd "C:/Users/shiro/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH ./src.exe --run src
+cd ~/scoop/apps/StarRailCopilot/current && env -u PYTHONPATH ./src.exe --run src
 ```
 
 Or via Python:
 
 ```bash
-cd "C:/Users/shiro/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH python gui.py --run src
+cd ~/scoop/apps/StarRailCopilot/current && env -u PYTHONPATH python gui.py --run src
 ```
 
 Multiple configs: `--run src src2`
@@ -62,7 +62,7 @@ SRC writes task logs to a dated log file. You can check for completion without l
 For this machine:
 
 ```
-C:/Users/shiro/scoop/apps/StarRailCopilot/current/log/{today}_{config_name}.txt
+~/scoop/apps/StarRailCopilot/current/log/{today}_{config_name}.txt
 ```
 
 - `{today}` = current date in `YYYY-MM-DD` format (e.g. `2026-07-05`)
@@ -81,13 +81,13 @@ Wait until YYYY-MM-DD HH:MM:SS for task `Restart`
 
 ```python
 # Read the last ~100 lines of today's log
-tail -n 100 "C:/Users/shiro/scoop/apps/StarRailCopilot/current/log/2026-07-05_src.txt"
+tail -n 100 ~/scoop/apps/StarRailCopilot/current/log/2026-07-05_src.txt
 ```
 
 Or use `grep` on the SRC log directory to check across multiple runs:
 
 ```bash
-grep -l "No task pending" /c/Users/shiro/scoop/apps/StarRailCopilot/current/log/*.txt
+grep -l "No task pending" ~/scoop/apps/StarRailCopilot/current/log/*.txt
 ```
 
 ### When log file doesn't exist yet

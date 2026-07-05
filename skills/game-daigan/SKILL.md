@@ -141,7 +141,7 @@ Launch directly — the window opens and you proceed to Step 6 to click "Link St
 **SRC (if active):**
 
 ```bash
-cd "~/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH ./src.exe --run src
+cd ~/scoop/apps/StarRailCopilot/current && env -u PYTHONPATH ./src.exe --run src
 ```
 
 > ⚠️ SRC requires a clean environment: always `cd` into its install directory and clear `PYTHONPATH` before launching. Running from elsewhere or with a contaminated `PYTHONPATH` causes import errors.
