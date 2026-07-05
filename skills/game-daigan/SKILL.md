@@ -43,8 +43,8 @@ Invoke through `terminal` and `computer_use` tools following the procedure below
 4.  terminal(background) → MAA / src      start daigan program(s)
 5.  computer_use → capture                confirm windows
 6.  computer_use → click start            MAA only (SRC --run skips)
-7.  terminal → tail log                   wait for completion
-8.  process(kill)                         close daigan program(s)
+7.  inform user → 代肝已开始，完成后叫我
+8.  (user says "肝完了") → process(kill)   close daigan program(s)
 9.  terminal → control shutdown           shut down emulator(s)
 ```
 
@@ -194,71 +194,41 @@ If the SOM index doesn't capture the button cleanly, fall back to `mode='vision'
 
 **SRC (if active, with `--run`):** Skip this step — automation started on launch.
 
-### 7. Monitor for Completion
+### 7. Inform User
 
-Monitor each active program independently. Both can be checked in parallel.
+All daigan programs are running. Tell the user:
 
-**SRC (if active — log-based):**
+> **"已经在代肝了！肝完了叫我来收尾就好~"**
 
-```bash
-tail -n 100 ~/scoop/apps/StarRailCopilot/current/log/$(date +%Y-%m-%d)_src.txt
-```
+You stop here. Wait for the user to come back and say something like "肝完了", "结束了", "收尾", "关了吧".
 
-Look for:
-```
-No task pending
-Wait until ... for task `Restart`
-```
-
-See [src-cli.md](references/src-cli.md#log-based-completion-detection). If log doesn't exist yet, wait and retry.
-
-**MAA (if active — log-based):**
-
-```bash
-tail -n 30 ~/scoop/apps/maa/current/debug/gui.log
-```
-
-Look for:
-```
-任务已全部完成！
-(用时 0h XXm XXs)
-理智将在 ... 回满。
-```
-
-See [maa-log.md](references/maa-log.md).
-
-**Vision-based fallback:** If log files are inaccessible, use `computer_use(action='capture', mode='vision', app="MAA"|"src")` every 2–5 minutes:
-- **MAA:** "任务已全部完成" or "任务完成" text in the log/status panel
-- **SRC:** "无任务" in the queue area
-
-> ⚠️ When tasks are done, the button stays as "停止". Do not click it — proceed to Step 8 to kill directly.
+When the user signals completion, proceed to Steps 8-9.
 
 ### 8. Close Daigan Program(s)
 
-Once **all** active programs are confirmed complete, kill each:
+Use the session IDs saved from Step 4's `terminal(background=true)` outputs:
 
 ```
 process(action='kill', session_id='<maa_session>')
 process(action='kill', session_id='<src_session>')
 ```
 
-The session IDs are from the `terminal(background=true)` outputs in Step 4.
+No need to click "停止" inside the GUI — just kill directly.
 
 ### 9. Shutdown Emulator(s)
-
-Shut down each target emulator:
 
 ```
 MuMuManager.exe control -v <INDEX_ARKNIGHTS> shutdown
 MuMuManager.exe control -v <INDEX_STARRAIL> shutdown
 ```
 
-Verify with `info -v all` that each target emulator shows `"is_process_started": false`.
+Verify with `MuMuManager.exe info -v all` that each target emulator shows `"is_process_started": false`.
+
+You can also check the log files to confirm tasks completed (optional — see [maa-log.md](references/maa-log.md) and [src-cli.md](references/src-cli.md#log-based-completion-detection) for keywords).
 
 ## Pitfalls
 
 - **SRC requires a clean environment**: Always `cd` into its install directory and clear `PYTHONPATH` before launching. Running from elsewhere or with a contaminated `PYTHONPATH` causes import errors. This applies even when using `--run`.
-- **`--run` ≠ no monitor**: Using `--run src` auto-starts SRC tasks but does NOT auto-stop. Still need to monitor completion (Step 7) then kill the process (Step 8).
 - **`--run` with wrong config name**: SRC starts but does nothing. Config name is case-sensitive and must match an existing instance name under `config/`.
 - **MAA window title is unstable**: It includes version/build info that updates with each release. Never match on window title — use `app="MAA"` for process-based targeting.
 - **Background launch ≠ instant ready**: Daigan programs take 5–30 seconds to render their first window. Use `notify_on_complete` or poll logs before capturing.
@@ -268,8 +238,7 @@ Verify with `info -v all` that each target emulator shows `"is_process_started":
 
 ## Verification
 
-After completing the full workflow:
+After cleanup, verify:
 
 1. `MuMuManager.exe info -v all` — confirm each target emulator shows `"is_process_started": false`
 2. `process(action='list')` — confirm no daigan processes remain
-3. `computer_use(action='capture', app="MAA"|"src")` — confirm daigan windows are gone
