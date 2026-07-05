@@ -82,7 +82,7 @@ Keep a running list of target games for cleanup steps. Store the background proc
 
 ### 1. Identify Emulators
 
-Load the `mumu-control` skill and run:
+Consult the `mumu-control` skill (read `skills/mumu-control/SKILL.md`) for the full `mumu-cli.exe` command reference. Run:
 
 ```bash
 mumu-cli.exe info --vmindex all
@@ -141,7 +141,7 @@ Launch directly — the window opens and you proceed to Step 6 to click "Link St
 **SRC (if active):**
 
 ```bash
-cd "C:/Users/shiro/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH ./src.exe --run src
+cd "~/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH ./src.exe --run src
 ```
 
 > ⚠️ SRC requires a clean environment: always `cd` into its install directory and clear `PYTHONPATH` before launching. Running from elsewhere or with a contaminated `PYTHONPATH` causes import errors.
@@ -164,13 +164,15 @@ Wait 5–15 seconds after launch, then confirm each program's UI is visible usin
 
 ### 6. Start Daigan(s)
 
-**MAA (if active) / SRC (if active, without `--run`):**
+**MAA (if active):**
+1. `computer_use(action='capture', mode='som', app="MAA")` — get numbered overlays
+2. Click the "Link Start!" button by element index
+3. Re-capture and confirm button text changed to "停止"
 
-1. `computer_use(action='capture', mode='som', app="MAA"|"src")` — get numbered overlays
-2. Click the start button by element index
-3. Re-capture and confirm button text changed:
-   - MAA: "Link Start!" → "停止"
-   - SRC: "启动" → "停止"
+**SRC (if active, without `--run`):**
+1. `computer_use(action='capture', mode='som', app="src")` — get numbered overlays
+2. Click the "启动" button by element index
+3. Re-capture and confirm button text changed to "停止"
 
 **SRC (if active, with `--run`):** Skip this step — automation started on launch.
 
