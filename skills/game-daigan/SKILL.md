@@ -164,16 +164,21 @@ Wait 5–15 seconds after launch, then confirm each program's UI is visible usin
 
 ### 6. Start Daigan(s)
 
+Process MAA and SRC **sequentially** — finish one completely before starting the next. Do NOT fire both clicks simultaneously; each click must be verified before moving on.
+
 **MAA (if active):**
 1. `computer_use(action='capture', mode='som', app="MAA")` — get numbered overlays
 2. Click the "Link Start!" button by element index
-3. Re-capture and confirm button text changed to "停止"
+3. Re-capture to confirm button text changed to "停止"
+   - If still "Link Start!", retry click + re-capture once more before taking further action
+4. Only proceed to SRC after MAA is confirmed running
 
 **SRC (if active):**
 1. `computer_use(action='capture', mode='som', app="src")` — get numbered overlays
 2. Click the "启动" button by element index
 3. If the button is not visible in the capture, other windows may be blocking it. Hide the emulator windows first: `mumu-cli.exe control --vmindex <INDEX> hide_window`, then re-capture and click
-4. Re-capture and confirm button text changed to "停止"
+4. Re-capture to confirm button text changed to "停止"
+   - If still "启动", retry click + re-capture once more
 
 ---
 
@@ -229,6 +234,7 @@ Poll logs every 30–60 seconds when monitoring.
 - **Multi-instance ambiguity**: If multiple emulators could match the game name, check `"is_main"` or ask the user.
 - **Locale-dependent button text**: The skill assumes Chinese UI (MAA/SRC default). If the locale is different, button strings will differ.
 - **Window occlusion**: SRC's "启动" button or MAA's "Link Start!" may be hidden behind other windows (emulator, MAA itself, etc.). If the button is not visible in the capture, hide blocking windows first using `mumu-cli.exe control --vmindex <INDEX> hide_window`, then re-capture. This is usually the real cause of click failures, not the target window type.
+- **Sequential clicks required**: Do NOT click both daigan buttons simultaneously. When two windows share the same element index (e.g. both have element 28 as their start button), firing two clicks at once causes coordinate resolution to use the wrong window's mapping. Always click one, verify, then click the next.
 
 ## Verification
 
