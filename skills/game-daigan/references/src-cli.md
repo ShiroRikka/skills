@@ -1,108 +1,108 @@
-# StarRailCopilot (SRC) CLI & Config Reference
+# StarRailCopilot (SRC) CLI 及配置参考
 
-> ⚠️ **`--run` is unreliable in practice** — it often fails to match config names and does not auto-start automation. The `game-daigan` skill does NOT use `--run`; it always launches SRC without flags and clicks "启动" in the UI. This reference documents `--run` for completeness, but prefer the manual click approach.
+> ⚠️ **`--run` 参数在实际使用中不可靠** — 它经常无法匹配配置名称，也不会自动启动自动化。本 `game-daigan` 技能**不使用** `--run`；始终不加参数启动 SRC，然后在 UI 中点击"启动"按钮。本文档记录 `--run` 仅供参考，但建议使用手动点击方式。
 
-SRC supports auto-running tasks on startup, eliminating the need for manual `computer_use` button clicks.
+SRC 支持在启动时自动运行任务，无需通过 `computer_use` 手动点击按钮。
 
-## Auto-Run on Startup (Two Ways)
+## 启动时自动运行（两种方式）
 
-### Way 1: CLI `--run` flag (recommended)
+### 方式一：CLI `--run` 参数（推荐）
 
-Pass the config name when launching:
+在启动时传入配置名称：
 
 ```bash
 cd ~/scoop/apps/StarRailCopilot/current && env -u PYTHONPATH ./src.exe --run src
 ```
 
-Or via Python:
+或通过 Python：
 
 ```bash
 cd ~/scoop/apps/StarRailCopilot/current && env -u PYTHONPATH python gui.py --run src
 ```
 
-Multiple configs: `--run src src2`
+多个配置：`--run src src2`
 
-### Way 2: `config/deploy.yaml` setting
+### 方式二：`config/deploy.yaml` 配置
 
-Edit `config/deploy.yaml` in the SRC install directory:
+编辑 SRC 安装目录下的 `config/deploy.yaml`：
 
 ```yaml
 Webui:
-  # --run. Auto-run specified config when startup
-  # 'null' default no specified config
-  # '["src"]' specified "src" config
-  # '["src","src2"]' specified "src" "src2" configs
+  # --run. 启动时自动运行指定配置
+  # 'null' 默认不指定配置
+  # '["src"]' 指定 "src" 配置
+  # '["src","src2"]' 指定 "src" "src2" 配置
   Run: '["src"]'
 ```
 
-The `--run` CLI arg takes precedence over `deploy.yaml`. The config name matches the instance name in SRC's WebUI (default: `src`).
+`--run` CLI 参数优先级高于 `deploy.yaml`。配置名称与 SRC WebUI 中的实例名称一致（默认：`src`）。
 
-## When `--run` Is Used
+## 使用 `--run` 时
 
-- **Skip Step 6** (clicking start) — SRC begins executing tasks immediately after the window renders
-- **Verification** — capture the SRC window after launch. If the button changed to "停止", `--run` worked. If it still shows "启动", the config name is wrong — fall back to manual mode.
-- **Completion detection** — preferred method: read the log file (see below). Fallback: visual inspection (queue shows "无任务")
+- **跳过第 6 步**（点击启动）— SRC 窗口渲染后立即开始执行任务
+- **验证** — 启动后截图 SRC 窗口。如果按钮变为"停止"，说明 `--run` 生效。如果仍显示"启动"，则配置名称错误 — 回退到手动模式。
+- **完成检测** — 推荐方法：读取日志文件（见下文）。备选方案：视觉检查（队列显示"无任务"）
 
-## When `--run` Is NOT Used
+## 不使用 `--run` 时
 
-Fall back to the original computer_use flow:
-1. Wait for window (Step 5)
-2. Click "启动" button (Step 6)
-3. Monitor (Step 7)
-4. Click "停止" button (Step 8)
+回退到原始的 computer_use 流程：
+1. 等待窗口出现（第 5 步）
+2. 点击"启动"按钮（第 6 步）
+3. 监控进度（第 7 步）
+4. 点击"停止"按钮（第 8 步）
 
-## Log-Based Completion Detection
+## 基于日志的完成检测
 
-SRC writes task logs to a dated log file. You can check for completion without looking at the UI.
+SRC 会将任务日志写入带日期的日志文件。可以无需查看 UI 即可检查完成状态。
 
-### Log file path
+### 日志文件路径
 
 ```
 {install_dir}/log/{YYYY-MM-DD}_{config_name}.txt
 ```
 
-For this machine:
+对于本机：
 
 ```
 ~/scoop/apps/StarRailCopilot/current/log/{today}_{config_name}.txt
 ```
 
-- `{today}` = current date in `YYYY-MM-DD` format (e.g. `2026-07-05`)
-- `{config_name}` = instance name (default: `src`)
+- `{today}` = 当前日期，格式 `YYYY-MM-DD`（例如 `2026-07-05`）
+- `{config_name}` = 实例名称（默认：`src`）
 
-### Completion keywords
+### 完成关键词
 
-When all tasks are done and SRC enters the idle-waiting state, the log contains:
+当所有任务完成且 SRC 进入空闲等待状态时，日志中包含：
 
 ```
 No task pending
 Wait until YYYY-MM-DD HH:MM:SS for task `Restart`
 ```
 
-### How to check
+### 如何检查
 
-```python
-# Read the last ~100 lines of today's log
+```bash
+# 读取当天日志的最后约 100 行
 tail -n 100 ~/scoop/apps/StarRailCopilot/current/log/2026-07-05_src.txt
 ```
 
-Or use `grep` on the SRC log directory to check across multiple runs:
+或使用 `grep` 在 SRC 日志目录中跨多次运行检查：
 
 ```bash
 grep -l "No task pending" ~/scoop/apps/StarRailCopilot/current/log/*.txt
 ```
 
-### When log file doesn't exist yet
+### 日志文件尚未创建时
 
-The log file is only created after SRC has started running tasks. If the file doesn't exist, SRC hasn't started logging yet — wait a few seconds and retry. If it still doesn't appear, fall back to computer_use vision monitoring.
+日志文件仅在 SRC 开始运行任务后才会创建。如果文件不存在，说明 SRC 尚未开始记录 — 等待几秒后重试。如果仍不出现，回退到 computer_use 视觉监控。
 
-## Pitfalls
+## 注意事项
 
-- **Clean environment required**: Always `cd` into install dir and clear `PYTHONPATH` before launching, even with `--run`. Otherwise import errors occur.
-- **`--run` with wrong config name**: SRC starts but does nothing. **How to avoid:**
-  1. Check `config/deploy.yaml` for the `Run` field — that's the config name
-  2. Also check the `config/` directory for `.json` files with instance names
-  3. Try `--run Alas` if `src` doesn't work
-  4. After launching, capture the SRC window. If button still says "启动", the config name was wrong
-  5. **Fallback:** kill SRC, relaunch without `--run`, click "启动" button manually
-- **Still need `computer_use` to stop**: `--run` auto-starts but does NOT auto-stop. Still need to click "停止" (Step 8) when done.
+- **需要干净环境**：即使使用 `--run`，也要始终 `cd` 到安装目录并清除 `PYTHONPATH` 后再启动。否则会出现导入错误。
+- **`--run` 配置名称错误**：SRC 启动但什么都不做。**避免方法：**
+  1. 检查 `config/deploy.yaml` 中的 `Run` 字段 — 那就是配置名称
+  2. 同时检查 `config/` 目录中实例名称对应的 `.json` 文件
+  3. 如果 `src` 不行，尝试 `--run Alas`
+  4. 启动后，截图 SRC 窗口。如果按钮仍显示"启动"，说明配置名称错误
+  5. **回退方案：** 杀掉 SRC，重新启动（不加 `--run`），手动点击"启动"按钮
+- **仍需 `computer_use` 来停止**：`--run` 自动开始但**不会**自动停止。完成后仍需点击"停止"（第 8 步）。

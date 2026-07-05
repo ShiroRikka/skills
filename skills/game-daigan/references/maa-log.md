@@ -1,22 +1,22 @@
-# MAA Log-Based Completion Detection
+# MAA 基于日志的完成检测
 
-MAA writes task progress and completion signals to `debug/gui.log`.
+MAA 将任务进度和完成信号写入 `debug/gui.log`。
 
-## Log File Path
+## 日志文件路径
 
 ```
 {install_dir}/debug/gui.log
 ```
 
-For this machine (Scoop install):
+对于本机（Scoop 安装）：
 
 ```
 ~/scoop/apps/maa/current/debug/gui.log
 ```
 
-## Completion Keywords
+## 完成关键词
 
-When all queued tasks are done, the log ends with:
+当所有排队任务完成时，日志末尾会出现：
 
 ```
 任务已全部完成！
@@ -24,7 +24,7 @@ When all queued tasks are done, the log ends with:
 理智将在 YYYY-MM-DD HH:MM 回满。(XXh XXm 后)
 ```
 
-The preceding lines show each completed task chain:
+前面的行显示每个已完成的任务链：
 
 ```
 <2> 完成任务: 基建换班
@@ -34,25 +34,25 @@ The preceding lines show each completed task chain:
 <2> 任务已全部完成！
 ```
 
-## How to Check
+## 如何检查
 
 ```bash
-# Read the last ~30 lines
+# 读取最后约 30 行
 tail -n 30 ~/scoop/apps/maa/current/debug/gui.log
 
-# Quick check for completion signal
+# 快速检查完成信号
 grep "任务已全部完成" ~/scoop/apps/maa/current/debug/gui.log
 ```
 
-## When Log Doesn't Show Completion Yet
+## 当日志尚未显示完成时
 
-- MAA is still running tasks — poll every 30–60 seconds
-- If `gui.log` contains recent task entries but no "任务已全部完成", tasks are still in progress
-- Fall back to vision-based monitoring if the log file is inaccessible
+- MAA 仍在运行任务 — 每 30–60 秒轮询一次
+- 如果 `gui.log` 中包含最近的任务记录但还没有"任务已全部完成"，说明任务仍在进行中
+- 如果日志文件无法访问，回退到基于视觉的监控
 
-## Pitfalls
+## 注意事项
 
-- **Log buffer delay**: MAA may flush logs with a slight delay. Wait a few seconds between polls.
-- **File locking**: `gui.log` is written by `MAA.exe` while running. `tail` and `grep` can still read it safely on Windows.
-- **Multiple days' runs**: The log accumulates across sessions. Always check the **last** occurrence of the completion keyword, or tail the end of the file.
-- **Task queue changes**: If you change the task list mid-run (e.g. add new tasks), the completion signal reflects the current queue only.
+- **日志缓冲延迟**：MAA 写入日志可能有轻微延迟。轮询之间等待几秒。
+- **文件锁定**：`gui.log` 由 `MAA.exe` 在运行时写入。`tail` 和 `grep` 在 Windows 上仍然可以安全读取。
+- **多次运行累积**：日志会跨会话累积。始终检查完成关键词的**最后一次**出现，或读取文件末尾。
+- **任务队列变更**：如果在运行中更改了任务列表（如添加新任务），完成信号仅反映当前队列的状态。
