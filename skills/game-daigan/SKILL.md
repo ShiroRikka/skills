@@ -1,10 +1,11 @@
 ---
 name: game-daigan
-description: Automate emulator game farming with MAA and SRC.
-version: 0.1.0
-author: Hermes
-platforms: [windows]
+description: Automate daily game farming on MuMu Android emulator with MAA (Arknights/明日方舟) and SRC (Star Rail/星穹铁道). Use when user wants to start/stop emulator-based auto-farming, or mentions 代肝, 挂机, 每日, daily tasks, or emulator automation.
 metadata:
+  version: 0.1.0
+  author: Hermes
+  platforms:
+    - windows
   hermes:
     tags: [Gaming, Automation, MuMu]
 ---
