@@ -9,11 +9,12 @@ description: >
   监控日志完成 → 清理收尾。
 license: MIT
 compatibility: >
-  Windows 专用。需要 MuMu Player 12 已安装，MAA（明日方舟）和/或
-  SRC/StarRailCopilot（星穹铁道）通过 Scoop 安装，并且 mumu-control
-  技能可用。
+  Windows 专用。需要 MuMu Player 12 / MuMu 已安装（实际安装路径可能为
+  `MuMu` 而非 `MuMu Player 12`，注册表路径为 `MuMuPlayer`），
+  MAA（明日方舟）和/或 SRC/StarRailCopilot（星穹铁道）通过 Scoop 安装，
+  并且 mumu-control 技能可用。
 metadata:
-  version: 1.2.0
+  version: 1.3.0
   author: Hermes
   spec: agentskills-1.0
 ---
@@ -42,7 +43,10 @@ metadata:
 
 ## 前置条件
 
-- **MuMu Player 12** 已安装（`mumu-control` 会自动检测路径）
+- **MuMu Player 12 / MuMu** 已安装（`mumu-control` 会自动检测路径）
+  - 注意：实际安装路径可能为 `C:\Program Files\Netease\MuMu`（而非 `MuMu Player 12`）
+  - 注册表项为 `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\MuMuPlayer`
+  - 检测成功后会缓存到 `mumu_install_path.txt`，后续启动更快
 - **MAA**（明日方舟）通过 Scoop 安装：`$HOME/scoop/apps/maa/current/MAA.exe`
 - **SRC / StarRailCopilot**（星穹铁道）通过 Scoop 安装：`$HOME/scoop/apps/StarRailCopilot/current/src.exe`
 - **`mumu-control` 技能** 在同一技能目录下可用（`skills/mumu-control/SKILL.md`）
@@ -175,13 +179,15 @@ cd "$HOME/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH ./src.exe
 
 ### 5. 验证代肝窗口
 
-启动后等待 5–15 秒，然后用 `computer_use` 确认每个程序的 UI 可见。
+启动后等待 5–15 秒，然后用 `computer_use` 确认**每个**程序的 UI 都可见。**两个都要验证，不要只看一个。**
 
-**MAA：** `computer_use(action='capture', app="MAA")` — 验证主 UI 标签页（一键长草、自动战斗、小工具、设置）和"Link Start!"按钮。
+**MAA：** `computer_use(action='capture', mode='som', app="MAA")` — 验证主 UI 标签页（一键长草、自动战斗、小工具、设置）和"Link Start!"按钮。
 
-**SRC：** `computer_use(action='capture', app="src")` — 验证调度器 UI（左侧导航、日志区域）和"启动"按钮。
+**SRC：** `computer_use(action='capture', mode='som', app="src")` — 验证调度器 UI（左侧导航、日志区域）和"启动"按钮。
 
-> 💡 如果目标窗口的按钮在截图中不可见，可能是其他窗口（模拟器、MAA 等）挡住了它。先使用 mumu-control 隐藏或最小化遮挡窗口：`mumu-cli.exe control --vmindex <INDEX> hide_window`，然后重新截图。
+> ⚠️ **必须使用 `app=` 参数限定窗口**，不要做不加 `app=` 的全屏截图。全屏截图会捕获桌面图标而不是目标窗口，导致无法找到按钮元素。
+>
+> 💡 如果目标窗口的按钮在截图中不可见，可能是其他窗口挡住了它。先使用 `mumu-cli.exe control --vmindex <INDEX> hide_window` 隐藏遮挡窗口，然后重新截图。
 
 ---
 
@@ -259,6 +265,9 @@ mumu-cli.exe control --vmindex <INDEX_2> shutdown
 - **按钮文字依赖语言环境**：本技能假设中文 UI（MAA/SRC 默认）。如果语言环境不同，按钮文字会不一样。
 - **窗口遮挡**：SRC 的"启动"按钮或 MAA 的"Link Start!"可能被其他窗口（模拟器、MAA 自身等）挡住。如果按钮在截图中不可见，先使用 `mumu-cli.exe control --vmindex <INDEX> hide_window` 隐藏遮挡窗口，再重新截图。这通常是点击失败的真实原因，而不是目标窗口类型问题。
 - **必须顺序点击**：不要同时点击两个代肝按钮。当两个窗口共享相同的元素索引时（例如两个窗口的启动按钮都是元素 28），同时触发两次点击会导致坐标解析使用错误的窗口映射。始终先点一个，验证完成，再点下一个。
+- **绝对不要使用坐标点击**：必须使用 `computer_use(action='click', element=<N>, app="<PROCESS>")` 按元素索引点击。坐标点击在 SOM 模式下不可靠，会点到错误的窗口位置。用户明确禁止了这种做法。
+- **MuMu 安装路径可能不带 "Player 12"**：实际路径可能为 `C:\Program Files\Netease\MuMu`。`mumu-control` 的注册表检测链能处理这种情况，但如果手动查找路径时要注意区分。
+- **截取目标窗口必须使用 `app=` 过滤**：不加 `app=` 的全屏截图会捕获桌面或所有窗口，导致无法获取 SOM 元素覆盖层，也就无法元素索引点击。
 
 ## 验证循环（收尾确认）
 
