@@ -12,9 +12,11 @@ compatibility: >
   Windows 专用。需要 MuMu Player 12 / MuMu 已安装（实际安装路径可能为
   `MuMu` 而非 `MuMu Player 12`，注册表路径为 `MuMuPlayer`），
   MAA（明日方舟）和/或 SRC/StarRailCopilot（星穹铁道）通过 Scoop 安装，
-  并且 mumu-control 技能可用。
+  并且 mumu-control 技能可用（agent 会自动通过
+  `npx skills add https://skills.mumu.163.com/mumu-control --agent hermes-agent -g -y`
+  安装/更新）。
 metadata:
-  version: 1.3.0
+  version: 1.4.0
   author: Hermes
   spec: agentskills-1.0
 ---
@@ -29,9 +31,12 @@ metadata:
 > - **只有**需要基于日志检测 MAA 完成状态时，再阅读 [references/maa-log.md](references/maa-log.md)
 > - **只有** SRC 启动遇到问题时，再阅读 [references/src-cli.md](references/src-cli.md)
 
-> **本技能负责游戏自动化（代肝）层。** 对于底层的 MuMu 模拟器操作（启动、关闭、ADB、UI 自动化），委托给 `mumu-control` 技能处理 — 详见 [与 mumu-control 的关系](#与-mumu-control-的关系)。
+| 本技能负责游戏自动化（代肝）层。 对于底层的 MuMu 模拟器操作（启动、关闭、ADB、UI 自动化），委托给 `mumu-control` 技能处理 — 详见 [与 mumu-control 的关系](#与-mumu-control-的关系)。
 
-**不涵盖：** 安装模拟器或代肝程序、在代肝界面内配置游戏任务设置、或常规的 MuMu Player 12 管理。
+> **⚠️ 重要：使用本技能前，必须先确保 `mumu-control` 技能已安装且是最新版。** 详见下方的 [mumu-control 准备](#mumu-control-准备) 步骤。如果未安装，agent 会自动执行安装命令。
+
+**不涵盖：** 安装 MuMu 模拟器或游戏代肝程序、在代肝界面内配置游戏任务设置、或常规的 MuMu Player 12 管理。\
+但 **`mumu-control` 技能的安装/更新** 是自动完成的 — 见 [mumu-control 准备](#mumu-control-准备)。
 
 ## 何时激活
 
@@ -49,7 +54,64 @@ metadata:
   - 检测成功后会缓存到 `mumu_install_path.txt`，后续启动更快
 - **MAA**（明日方舟）通过 Scoop 安装：`$HOME/scoop/apps/maa/current/MAA.exe`
 - **SRC / StarRailCopilot**（星穹铁道）通过 Scoop 安装：`$HOME/scoop/apps/StarRailCopilot/current/src.exe`
-- **`mumu-control` 技能** 在同一技能目录下可用（`skills/mumu-control/SKILL.md`）
+- **`mumu-control` 技能** 在同一技能目录下可用（`skills/mumu-control/SKILL.md`）或通过外部 registry 安装
+
+## mumu-control 准备
+
+**使用 `game-daigan` 之前，agent 必须先确保 `mumu-control` 已安装且是最新版。** 每次运行代肝流程时，都应先执行此步骤 — 这是一个幂等操作，已安装则自动升级，未安装则自动安装。
+
+### 安装/更新命令
+
+```bash
+npx skills add https://skills.mumu.163.com/mumu-control --agent hermes-agent -g -y
+```
+
+说明：
+| 参数 | 含义 |
+| ---- | ---- |
+| `npx skills add` | 从技能 registry 安装或更新技能 |
+| `https://skills.mumu.163.com/mumu-control` | mumu-control 技能的官方地址 |
+| `--agent hermes-agent` | 指定 Hermes Agent 作为目标 agent |
+| `-g` | 全局安装（对所有 Hermes 会话可用） |
+| `-y` | 跳过确认提示 |
+
+> 此命令无论首次安装还是后续升级都是同一个。已安装时执行会自动覆盖更新到最新版本。
+
+### 验证安装
+
+安装后，确认 `mumu-control` 可用：
+
+```bash
+hermes skills list | grep mumu-control
+```
+
+或者直接尝试加载技能：
+
+```bash
+hermes skills inspect mumu-control
+```
+
+应看到 SKILL.md 内容输出，包含版本号、命令参考等。
+
+### 安装后的额外设置
+
+`mumu-control` 技能安装完毕后，还需要确保其依赖项就绪：
+
+1. **Python 依赖**：进入 MuMu 安装目录的 `nx_main`，运行 `pip install -r requirements.txt`
+2. **uiautomator2 初始化**（首次使用 UIAutomator 前）：`python -m uiautomator2 init`（每个模拟器实例只需一次）
+3. **查找 MuMu 安装路径**：`mumu-control` 会自动检测（注册表/默认路径），首次使用会缓存到 `mumu_install_path.txt`
+
+> 这些步骤的具体命令和路径参考见 `mumu-control` 技能文档。加载 `mumu-control` 技能后，agent 会自动按官方文档执行这些设置。**不需要用户手动操作。**
+
+### 异常处理
+
+| 问题 | 处理方式 |
+| ---- | -------- |
+| `npx skills add` 命令失败 | 检查网络连接；重试一次；如果仍然失败，提示用户手动运行此命令 |
+| `mumu-control` 加载后缺少依赖 | 运行 `pip install -r requirements.txt`（路径由 mumu-control 自动检测链提供） |
+| 找不到 MuMu 安装路径 | 让 `mumu-control` 运行其检测链；如果失败则询问用户 MuMu 的安装路径 |
+
+---
 
 ## 与 mumu-control 的关系
 
@@ -71,6 +133,7 @@ metadata:
 ## 工作流概览
 
 ```
+0. 准备 mumu-control → 安装/更新 mumu-control（game-daigan 触发）
 1. 识别模拟器          → mumu-cli info --vmindex all（mumu-control）
 2. 启动模拟器          → mumu-cli control launch（mumu-control）
 3. 等待就绪            → 轮询 info 直到 is_android_started（mumu-control）
@@ -95,6 +158,31 @@ metadata:
 | "明日方舟" / "Arknights" / "MAA"          | → MAA          |
 | "星穹铁道" / "星铁" / "Star Rail" / "SRC" | → SRC          |
 | 未指定 / "都肝" / "全部" / "both"         | → **两个都跑** |
+
+---
+
+### 0. 准备 mumu-control
+
+**在开始任何代肝操作之前，必须先安装/更新 `mumu-control` 技能。**
+
+```bash
+npx skills add https://skills.mumu.163.com/mumu-control --agent hermes-agent -g -y
+```
+
+> 此命令是幂等的 — 已安装时自动升级到最新版，未安装时自动安装。
+
+安装后，加载 `mumu-control` 技能以获取其完整的命令参考和工具：
+
+```bash
+skill_view(name='mumu-control')
+```
+
+然后执行 `mumu-control` 技能中描述的额外设置步骤：
+1. 安装 Python 依赖：`pip install -r requirements.txt`
+2. uiautomator2 初始化：`python -m uiautomator2 init`
+3. 确认 MuMu 安装路径已被检测到
+
+> 如果 `npx skills add` 命令失败（网络问题等），重试一次。如果仍然失败，提示用户手动运行此命令。
 
 ---
 

@@ -45,3 +45,26 @@ hermes skills install ShiroRikka/skills/game-dailies
 ```bash
 npx skills add https://skills.mumu.163.com/mumu-control --agent hermes-agent -g -y
 ```
+
+## game-daigan 与 mumu-control 的关系
+
+`skills/game-daigan`（游戏自动代肝）依赖 `mumu-control`（MuMu 模拟器控制）技能。
+
+- `game-daigan` 提供**游戏代肝逻辑** — 启动 MAA/SRC、验证窗口、点击开始/停止
+- `mumu-control` 提供**模拟器底层操作** — 启动/关闭模拟器、ADB、UI 自动化点击/滑动/OCR
+
+运行 `game-daigan` 时，agent 会自动先执行 `mumu-control` 的安装/更新（通过上述 `npx skills add` 命令），然后加载 `mumu-control` 技能处理模拟器相关步骤。
+
+如果你单独使用 `mumu-control` 管理模拟器（不代肝），也可以直接用上述命令安装。
+
+### 首次使用前
+
+确保 `mumu-control` 已就绪：
+
+```bash
+# 1. 安装/更新 mumu-control
+npx skills add https://skills.mumu.163.com/mumu-control --agent hermes-agent -g -y
+
+# 2. 确认安装成功
+hermes skills list | grep mumu-control
+```
