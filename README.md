@@ -39,3 +39,9 @@ hermes skills inspect ShiroRikka/skills/game-dailies
 ```bash
 hermes skills install ShiroRikka/skills/game-dailies
 ```
+
+通过skills.sh安装/更新
+
+```bash
+npx skills add https://skills.mumu.163.com/mumu-control --agent hermes-agent -g -y
+```
