@@ -1,63 +1,41 @@
 ---
 name: game-daigan
 description: >
-  在 MuMu Android 模拟器上启动自动日常游戏代肝（挂机）。
-  当用户提到代肝/挂机/每日/日常/周常/daily tasks、
-  想运行 MAA（明日方舟）或 SRC（星穹铁道）、
-  或要求启动/监控/停止模拟器自动挂机时激活。
-  涵盖完整生命周期：识别实例 → 启动模拟器 → 启动代肝程序 → 触发自动化 → 清理收尾。
+  在 MuMu Android 模拟器上自动启动 MAA（明日方舟）和 SRC（星穹铁道）的日常代肝。
+  当用户提及代肝、挂机、每日/周常、MAA、SRC 或模拟器自动挂机时激活。
+  覆盖完整生命周期：识别实例 → 启动模拟器 → 启动代肝程序 → 触发自动化 → 等待完成 → 清理收尾。
 license: MIT
 compatibility: >
-  Windows 专用。需要 MuMu Player 12 / MuMu、
-  MAA（明日方舟）和/或 SRC（星穹铁道）通过 Scoop 安装、
+  Windows 专用。需要 MuMu Player 12、MAA 和/或 SRC（Scoop 安装）、
   以及 mumu-control 技能（本技能自动安装/更新）。
 metadata:
-  version: 1.5.0
+  version: 2.0.0
   author: Hermes
   spec: agentskills-1.0
 ---
 
 # 游戏自动代肝
 
-在 MuMu Android 模拟器上使用 **MAA**（明日方舟）和 **SRC**（星穹铁道）自动完成日常游戏任务。
+在 MuMu Android 模拟器上使用 **MAA**（明日方舟）和 **SRC**（星穹铁道）自动完成日常。
 
-> **本技能负责游戏自动化层。** 底层 MuMu 操作（启动、关闭、ADB、UI 自动化）委托给 `mumu-control` 技能。
+> **本技能负责游戏自动化层。** 底层 MuMu 操作（启动、关闭、ADB、UI 自动化）委托给 `mumu-control`。
 
-**不涵盖：** 安装 MuMu 模拟器或代肝程序、配置代肝任务设置、常规 MuMu 管理。
+## 前置条件验证
 
-## 何时激活
+操作前按顺序验证（任一失败则提示用户手动安装并中止）：
 
-- "帮我代肝明日方舟" / "帮我代肝星铁"
-- "启动模拟器并开始挂机" / "帮我把每日/周常做了"
-- 任何涉及代肝、挂机、每日、MAA、SRC 或 MuMu 自动挂机的请求
+```bash
+# 1. MuMu 是否安装（注册表检查）
+reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\MuMuPlayer" >nul 2>&1 && echo "MUMU_OK" || echo "MUMU_MISSING"
 
-## 前置条件
+# 2. MAA（如果启用）
+test -f "$HOME/scoop/apps/maa/current/MAA.exe" && echo "MAA_OK" || echo "MAA_MISSING"
 
-- **MuMu** 已安装（注册表 `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\MuMuPlayer`）
-- **MAA**（明日方舟）：`$HOME/scoop/apps/maa/current/MAA.exe`
-- **SRC**（星穹铁道）：`$HOME/scoop/apps/StarRailCopilot/current/src.exe`
-- **`mumu-control` 技能**：见步骤 0，自动安装/更新
-
-## 工作流概览
-
-```
-0. 安装/更新 mumu-control
-1. 识别模拟器          → mumu-cli info --vmindex all
-2. 启动模拟器          → mumu-cli control launch
-3. 等待就绪            → 轮询 info 直到 is_android_started
-4. 启动代肝程序        → MAA.exe / src.exe（后台）
-5. 验证代肝窗口        → computer_use 确认 UI 可见
-6. 开始自动化          → 点击按钮（Link Start! / 启动）
-7. 通知用户            → "肝完了叫我来收尾~"
-8. （用户通知完成）     → 停止代肝进程
-9. 关闭模拟器          → mumu-cli control shutdown
+# 3. SRC（如果启用）
+test -f "$HOME/scoop/apps/StarRailCopilot/current/src.exe" && echo "SRC_OK" || echo "SRC_MISSING"
 ```
 
-**默认行为：** 未指定游戏时同时运行 MAA 和 SRC。只指定一个则运行指定。
-
-## 流程
-
-### 游戏选择
+## 游戏选择
 
 | 关键词 | 游戏 |
 |-------|------|
@@ -65,23 +43,18 @@ metadata:
 | "星穹铁道" / "星铁" / "Star Rail" / "SRC" | → SRC |
 | 未指定 / "都肝" / "全部" / "both" | → **两个都跑** |
 
-### 0. 准备 mumu-control
+## 流程
 
-开始操作前，确保 `mumu-control` 已安装且是最新版：
+### 0. 准备 mumu-control
 
 ```bash
 npx skills add https://skills.mumu.163.com/mumu-control --agent hermes-agent -g -y
-```
-
-加载技能，然后安装依赖：
-
-```bash
 skill_view(name='mumu-control')
 pip install -r requirements.txt   # 在 MuMu 安装目录的 nx_main 下运行
 python -m uiautomator2 init       # 每个模拟器实例只需一次
 ```
 
-> 命令失败时重试一次，仍失败则提示用户手动运行。
+> 任一命令失败→重试1次→仍失败→提示用户手动运行并中止。
 
 ### 1. 识别模拟器
 
@@ -96,9 +69,11 @@ mumu-cli.exe info --vmindex all
 | 明日方舟 | "明日方舟" |
 | 星穹铁道 | "星穹铁道" |
 
-不匹配时列出所有实例让用户确认。
+> 无匹配时列出所有实例让用户确认。超时：30 秒。
 
 ### 2. 启动模拟器
+
+按需要的索引并行启动（terminal + background）：
 
 ```bash
 mumu-cli.exe control --vmindex <INDEX_1> launch
@@ -107,15 +82,16 @@ mumu-cli.exe control --vmindex <INDEX_2> launch
 
 ### 3. 等待就绪
 
-每 10 秒轮询 `mumu-cli.exe info --vmindex all`，直到所有目标索引满足：
+每 10 秒轮询 `mumu-cli.exe info --vmindex all`，最多轮询 **15 次**（约 150 秒）。全部满足时立即停止：
+
 - `is_process_started: true`
 - `is_android_started: true`
 - `player_state: "start_finished"`
 - `adb_port` 字段出现
 
-**全部满足后立即停止轮询**（典型等待 30–120s）。
+> 超时仍不满足 → 报告用户并中止。
 
-隐藏模拟器窗口（避免遮挡后面代肝程序的 UI）：
+就绪后隐藏窗口（避免遮挡后面代肝程序 UI）：
 
 ```bash
 mumu-cli.exe control --vmindex <INDEX> hide_window
@@ -123,14 +99,14 @@ mumu-cli.exe control --vmindex <INDEX> hide_window
 
 ### 4. 启动代肝程序
 
-通过 `terminal(background=true)` **并行**启动。
+通过 `terminal(background=true, notify_on_complete=true)` **并行**启动。
 
 **MAA（如果启用）：**
 ```bash
 "$HOME/scoop/apps/maa/current/MAA.exe"
 ```
 
-**SRC（如果启用）** — 需要干净环境：
+**SRC（如果启用）— 需要干净环境：**
 ```bash
 cd "$HOME/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH ./src.exe
 ```
@@ -139,29 +115,29 @@ cd "$HOME/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH ./src.exe
 
 ### 5. 验证代肝窗口
 
-等待 5–15 秒，用 `computer_use` 确认每个程序的 UI 可见（**两个都要验证**）：
+启动后等待 **10 秒**，然后用 `computer_use` 确认窗口就绪（**两个都要验证**）：
 
-- **MAA：** `computer_use(action='capture', mode='som', app="MAA")` — 确认"Link Start!"按钮存在
-- **SRC：** `computer_use(action='capture', mode='som', app="src")` — 确认"启动"按钮存在
+- **MAA：** `capture(mode='som', app='MAA')` — 确认"Link Start!"按钮存在
+- **SRC：** `capture(mode='som', app='src')` — 确认"启动"按钮存在
 
-> ⚠️ 必须使用 `app=` 参数限定窗口，不要全屏截图。
+> 必须用 `app=` 限定窗口。截图超时 15 秒 → 重试1次 → 失败则报告。
 
 ### 6. 开始代肝
 
-**按顺序**处理 MAA 和 SRC — 完成一个再开始下一个。不要同时触发两个点击。
+**按顺序**处理 MAA → SRC。不要同时触发两个点击。
 
 **MAA（如果启用）：**
-1. 截图获取 SOM 覆盖层
+1. `capture(mode='som', app='MAA')`
 2. 按元素索引点击"Link Start!"
-3. 确认按钮变为"停止"（否则重试一次）
+3. 确认按钮变为"停止"（重试上限 **2 次**，间隔 3 秒）
 
 **SRC（如果启用）：**
-1. 截图获取 SOM 覆盖层
+1. `capture(mode='som', app='src')`
 2. 按元素索引点击"启动"
-3. 确认按钮变为"停止"（否则重试一次）
-4. 按钮不可见时先 `hide_window` 隐藏遮挡窗口
+3. 确认按钮变为"停止"（重试上限 **2 次**，间隔 3 秒）
+4. 按钮不可见时先 `hide_window` 隐藏遮挡窗口后重试
 
-### 7. 通知用户
+### 7. 通知用户等待
 
 > **"已经开始了！肝完了叫我来收尾就好~"**
 
@@ -169,10 +145,10 @@ cd "$HOME/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH ./src.exe
 
 ### 8. 结束代肝
 
-**按顺序**处理 MAA 和 SRC：
+**按顺序**处理 MAA → SRC：
 
-**MAA：** 点击"停止" → 确认变为"Link Start!"（否则重试一次）
-**SRC：** 点击"停止" → 确认变为"启动"（否则重试一次，按钮不可见时先 `hide_window`）
+- **MAA：** 点击"停止" → 确认变为"Link Start!"（重试上限 2 次）
+- **SRC：** 点击"停止" → 确认变为"启动"（重试上限 2 次；按钮不可见则先 `hide_window`）
 
 ### 9. 关闭模拟器
 
@@ -180,15 +156,37 @@ cd "$HOME/scoop/apps/StarRailCopilot/current" && env -u PYTHONPATH ./src.exe
 mumu-cli.exe control --vmindex <INDEX> shutdown
 ```
 
-验证：`mumu-cli.exe info --vmindex all` — 确认 `is_process_started: false`。
+验证：轮询 `info` 直到 `is_process_started: false`（超时 30 秒）。
 
 ## 注意事项
 
-- **SRC 需干净环境**：始终 `cd` 到安装目录并清除 `PYTHONPATH`
-- **MAA 窗口标题不稳定**：不要匹配标题，用 `app="MAA"` 基于进程名定位
-- **后台启动 ≠ 立即就绪**：截图前等待 5–15 秒
-- **按钮文字依赖语言环境**：本技能假设中文 UI
-- **窗口遮挡**：按钮不可见时先 `hide_window` 隐藏遮挡窗口，再重新截图
-- **必须顺序点击**：不要同时点击两个代肝按钮（共享元素索引时坐标会错乱）
-- **禁用坐标点击**：必须用 `computer_use(action='click', element=<N>, app="<PROCESS>")` 按元素索引点击
-- **截取目标窗口必须用 `app=` 过滤**：不加 `app=` 的全屏截图无法获取 SOM 覆盖层
+### SRC 特有
+- 必须 `cd` 到安装目录并清除 `PYTHONPATH`，否则导入报错
+
+### 窗口管理
+- MAA 窗口标题不稳定，用 `app='MAA'`（进程名）定位
+- 窗口遮挡时先 `hide_window` 再重新截图
+- 禁用坐标点击，必须用 `app=` + 元素索引
+
+### 时序
+- 后台启动 → 截图前等 10 秒
+- 模拟器启动最坏 150 秒
+- 按钮点击重试上限 2 次
+
+### UI 假设
+- 按钮文字依赖中文语言环境（Link Start! / 启动 / 停止）
+
+### 多实例
+- 两个代肝同时跑时，**必须顺序点击**按钮（共享元素索引时坐标会错乱）
+- 截取目标窗口必须用 `app=` 过滤（全屏截图无法获取 SOM 覆盖层）
+
+## 错误恢复
+
+| 故障场景 | 处理方式 |
+|---------|---------|
+| MuMu 未安装 | 提示用户手动安装，中止 |
+| 代肝程序缺失 | 提示用户通过 Scoop 安装，中止 |
+| 模拟器启动超时 | 报错 + 建议检查 MuMu/ADB |
+| 按钮点击失败 | 重试 2 次 → 报错 + 建议手动操作 |
+| 代肝进程崩溃 | 检查 background 进程状态，重启一次 |
+| SRC 导入错误 | 确认已 `cd` 到安装目录且清除 PYTHONPATH |
